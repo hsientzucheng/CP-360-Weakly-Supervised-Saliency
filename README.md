@@ -19,5 +19,5 @@ bash run.sh
 ## TODOs
 This code will be updated later soon.
 - [ ] temporal training code
-- [ ] full-version of projection and CP
+- [ ] full-version of Equi-Cube projection and CubePadding
 
