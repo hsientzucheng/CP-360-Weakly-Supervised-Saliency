@@ -16,7 +16,7 @@ After having the model and setting up the environment, you can run this code dir
 bash run.sh
 ```
 
-# TODOs
+## TODOs
 This code will be updated later soon.
 [] temporal training code
 [] full-version of projection and CP
