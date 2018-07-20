@@ -18,6 +18,6 @@ bash run.sh
 
 ## TODOs
 This code will be updated later soon.
-[] temporal training code
-[] full-version of projection and CP
+[ ] temporal training code
+[ ] full-version of projection and CP
 
