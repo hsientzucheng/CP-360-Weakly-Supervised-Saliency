@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import pdb
 import argparse
 
 from numpy import convolve
@@ -17,15 +16,7 @@ def main():
     
     lll = np.load(args.input)
     lll_avg = [movingaverage(lll[:,x],2000) for x in range(lll.shape[-1])]
-    #pdb.set_trace()
-
-
     lll_avg_norm = [(np.array(lll_avg[x])-np.min(lll_avg[x]))/np.max(np.array(lll_avg[x])-np.min(lll_avg[x])) for x in range(lll.shape[-1])]
-    #lll_avg_norm = [np.log(lll_avg[x]) for x in range(lll.shape[-1])]
-    
-    #lll_avg_norm = lll_avg    
-
-    #plt.plot(lll_avg_norm[1])
     
     sm, = plt.plot(lll_avg_norm[0][:17000],label='sm')
     tmp, = plt.plot(lll_avg_norm[1][:17000],label='tmp')
@@ -41,9 +32,7 @@ def main():
     plt.plot(lll_avg_norm[3])
     '''
 
-    #plt.show()
     plt.savefig(args.input.split('/')[-2]+'_loss.jpg')
-    #pdb.set_trace()
 
 if __name__ == '__main__':
     main()

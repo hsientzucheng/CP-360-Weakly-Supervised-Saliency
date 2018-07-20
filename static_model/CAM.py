@@ -1,7 +1,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import pdb
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -9,14 +8,10 @@ import sys, os
 sys.path.append('..')
 import torch
 import torch.nn as nn
-
 from utils.sph_utils import cube2equi
-
 from torchvision import transforms
 from torch.autograd import Variable
-
 from PIL import Image
-
 from collections import Counter
 
 def overlay(img, heatmap, cmap='jet', alpha=0.5):
@@ -78,7 +73,6 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
         weight_softmax-=np.min(weight_softmax)
 
     # from BZ x H x W x C to BZ x C x H x W
-    # pdb.set_trace()
     img = img.permute(0, 3, 1, 2).contiguous()
 
     if USE_GPU:
@@ -88,10 +82,7 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
 
     # forward
     tStart = time.time()
-
     output = model(img)
-
-    # output = nn.Softmax(output)
 
     # select most common 5 of 5 from each face #
     top5s = []
@@ -103,7 +94,6 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
 
     if(CLASS_CONST):
         objness_arr = np.array([class_objectness[x] for x in top5s])
-        #pdb.set_trace()
         objs = top5s[objness_arr==1]
         nonobjs = top5s[objness_arr==0]
         objtop5 = [Counter(objs).most_common(5)[x][0] for x in range(len(Counter(objs).most_common(5)))]
@@ -114,8 +104,6 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
     else:
         top5 = np.array([Counter(top5s).most_common(5)[x][0] for x in range(len(Counter(top5s).most_common(5)))]).astype(np.int)
     ############### end of top5 ###############
-
-    
     # select the most possible object from each face (6) in total #
     #class_indices = torch.max(output, 1)[1].data.cpu().numpy().tolist()
     #print(class_indices)
@@ -130,28 +118,12 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
     tEnd = time.time()
     #print("It takes {0} sec".format(tEnd - tStart))
 
-    #pdb.set_trace()
     # compute CAM
     bz, h, w, nc = out_feature.shape
     out_feature = np.transpose(out_feature, (0, 3, 1, 2))
     features = out_feature.reshape(bz*nc, h*w)
-    pdb.set_trace()
 
     cams = []
-    
-    '''
-    # compute un-weighted CAM by class #
-    for class_idx, _ in top5:
-        cam = np.expand_dims(weight_softmax[class_idx], 0).dot(features)
-        cam = cam.reshape(h, w)
-        cam = cam - np.min(cam)
-        cam = cam / np.max(cam)
-        cam_img = np.uint8(255 * cam)
-        result = overlay(input_equi, cam_img)
-        cams.append(result)
-    ####################################
-    '''
-    #print(top5)
     # test for max response #
     max_rspns = []
     for clss in top5:

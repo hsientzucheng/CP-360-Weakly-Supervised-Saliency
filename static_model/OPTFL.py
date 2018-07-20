@@ -1,5 +1,4 @@
 import os
-import pdb
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +9,6 @@ def calcOpticalFlow(prev_frame, cur_frame):
     cur_frame = cv2.resize(cur_frame[..., ::-1], (960, 480), interpolation=cv2.INTER_LANCZOS4)
     prev_frame = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
     cur_frame = cv2.cvtColor(cur_frame, cv2.COLOR_BGR2GRAY)
-    #pdb.set_trace()
     DF = cv2.optflow.createOptFlow_DeepFlow()
     h,w = prev_frame.shape
     flow_temp = np.zeros((h,w,2))

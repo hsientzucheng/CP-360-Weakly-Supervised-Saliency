@@ -1,5 +1,3 @@
-
-import pdb
 import matplotlib.patches as patches
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -23,17 +21,11 @@ rad135 = np.pi*3/4
 #PHI_BOUND=m.atan(1/m.sqrt(2))
 
 def xy2angle(XX,YY,im_w,im_h):
-    #pdb.set_trace()
     _XX = 2*XX/float(im_w)-1
     _YY = 1-2*YY/float(im_h)
-
     theta = _XX*np.pi
     phi = _YY*np.pi/2
-
     return theta, phi
-
-#def xyz_to_sph(x,y,z):
-    
 
 def to_3dsphere(theta,phi,R):
     x = R*np.cos(phi)*np.cos(theta)
@@ -42,7 +34,6 @@ def to_3dsphere(theta,phi,R):
     return x,y,z
 
 def face_conditions(theta, phi, face):
-    #pdb.set_trace()
     if face=='T':
         return (phi>0)&(np.sin(theta)/np.tan(phi)<1)&(np.sin(theta)/np.tan(phi)>-1)&(np.cos(theta)/np.tan(phi)<1)&(np.cos(theta)/np.tan(phi)>-1)
     elif face=='D':
@@ -80,7 +71,6 @@ def to_3dcube(theta,phi,R):
     output_cube = np.array([x,y,z])
     output_cube = np.transpose(output_cube,(1,2,0))
 
-
     front_trans = np.array([np.ones(phi.shape),np.tan(phi)/np.cos(theta),np.tan(theta)]) 
     front_trans = np.transpose(front_trans,(1,2,0))
     back_trans = np.array([-np.ones(phi.shape), -np.tan(phi)/np.cos(theta), -np.tan(theta)])
@@ -106,20 +96,11 @@ def to_3dcube(theta,phi,R):
 
 def set_region_mask(t, p, targ_t, targ_p, l_width, angle):
     print("target: {0},{1} angle={2}".format(targ_t,targ_p,angle*180/np.pi))
-    '''
-    region_mask = (((t<targ_t+angle+l_width)&(t>targ_t+angle-l_width))|
-                  ((t<targ_t-angle+l_width)&(t>targ_t-angle-l_width))|
-                  ((p<targ_p+angle+l_width)&(p>targ_p+angle-l_width))|
-                  ((p<targ_p-angle+l_width)&(p>targ_p-angle-l_width)))
-    
-    pdb.set_trace()
-    '''
     r_most = over_pi((targ_t+angle+l_width))
     l_most = over_pi((targ_t-angle-l_width))
     r_in = over_pi((targ_t+angle-l_width))
     l_in = over_pi((targ_t-angle+l_width))
 
-    #pdb.set_trace()
     if r_most>l_most:
         o_region_mask=(t<r_most)&(t>l_most)&(p<(targ_p+angle+l_width))&(p>(targ_p-angle-l_width))
     else:
@@ -135,20 +116,11 @@ def set_region_mask(t, p, targ_t, targ_p, l_width, angle):
 
 def solid_region_mask(t, p, targ_t, targ_p, l_width, angle):
     print("target: {0},{1} angle={2}".format(targ_t,targ_p,angle*180/np.pi))
-    '''
-    region_mask = (((t<targ_t+angle+l_width)&(t>targ_t+angle-l_width))|
-                  ((t<targ_t-angle+l_width)&(t>targ_t-angle-l_width))|
-                  ((p<targ_p+angle+l_width)&(p>targ_p+angle-l_width))|
-                  ((p<targ_p-angle+l_width)&(p>targ_p-angle-l_width)))
-    
-    pdb.set_trace()
-    '''
     r_most = over_pi((targ_t+angle+l_width))
     l_most = over_pi((targ_t-angle-l_width))
     #r_in = over_pi((targ_t+angle-l_width)) 
     #l_in = over_pi((targ_t-angle+l_width))
 
-    #pdb.set_trace()
     if r_most>l_most:
         o_region_mask=(t<r_most)&(t>l_most)&(p<(targ_p+angle+l_width))&(p>(targ_p-angle-l_width))
     else:
@@ -181,17 +153,6 @@ def myplot(in_name,newsize):
     view_ph=55
     vang_x=70
 
-    '''
-    fig_sp = plt.figure()
-    ax_sp = fig.add_subplot(1, 2, 1, projection='3d')
-    #ax_sp = fig_sp.gca(projection='3d')
-    ax_sp.set_aspect("equal")
-    '''
-
-    #raw_im = cv2.imread('/Users/Jim/Desktop/001322.jpg')
-    #raw_im = cv2.imread('/Users/Jim/Desktop/sphericalmap.jpg')
-    #raw_im = cv2.imread('/Users/Jim/Desktop/ski_test.jpg')
-    #raw_im = cv2.imread('/Users/Jim/Desktop/selected_f/filter_193.jpg')
     raw_im = cv2.imread(in_name)
 
     _im_h, _im_w = raw_im.shape[:2]
@@ -214,16 +175,13 @@ def myplot(in_name,newsize):
     print("compute coordinate")
     x,y,z = to_3dsphere(theta,phi,R)
     cube_mesh = to_3dcube(theta,phi,1)
-    #pdb.set_trace()
 
-    #region box settings      # -2 param for width
     #region_mask = set_region_mask(theta,phi,targ_th/180.0*np.pi,targ_ph/180.0*np.pi,0.05,vang_x/180.0*np.pi)
     region_mask = solid_region_mask(theta,phi,targ_th/180.0*np.pi,targ_ph/180.0*np.pi,0.05,vang_x/180.0*np.pi)
     if VIS_MASK:
         vis_mask = norm_resize_im.copy()*255.
         vis_mask[region_mask,:]=(0,0,255)
         cv2.imwrite(in_name.split('.')[0]+'_mask.jpg',vis_mask)
-        pdb.set_trace()
 
     fig_sp = plt.figure()
 
@@ -263,7 +221,6 @@ def myplot(in_name,newsize):
     
     if WRITE_FIG:
         plt.savefig(in_name.split('.')[0]+'_cs'+str(view_th)+'_'+str(view_ph)+'.jpg')
-    #pdb.set_trace()
     #plt.show()
 
 
@@ -294,7 +251,6 @@ def cubeplot(in_dir,view_th,view_ph):
     ax.set_ylabel('Y axis')
     ax.set_zlabel('Z axis')
     ax.view_init(view_th,view_ph)
-    #plt.show()
 
     if WRITE_FIG:
         plt.savefig(in_dir+'cube_vis'+str(view_th)+'_'+str(view_ph)+'.jpg')
@@ -306,41 +262,24 @@ def main():
 
     view_th= 160
     view_ph=55
-    #view_th=30
-    #view_ph=-30
 
     myplot('/Users/Jim/Desktop/ski_test.jpg',sub_size)
     plt.show()
     #cubeplot('/Users/Jim/Desktop/test_frames_ll4/cube_',view_th,view_ph)
-    pdb.set_trace()
-
     #items = ['188','193','208','224']
     items = ['224','193']
-
     # plot cube map directly 
     #cubeplot(source_path+'ski_test_cube/cube_',view_th,view_ph)
-    #pdb.set_trace()    
     
     for item in items:
         cubeplot(source_path+'zero_pad/filter_'+item+'_',view_th,view_ph)
         cubeplot(source_path+'cube_pad/filter_'+item+'_',view_th,view_ph)
-    pdb.set_trace()
-
     # plot cube map directly ^ ^ ^ ^
-
     #myplot('/Users/Jim/Desktop/ski_test.jpg',main_size)
-
-    #pdb.set_trace()
     for item in items:
-
         myplot(source_path+'filter_'+item+'_1.jpg',sub_size)
         myplot(source_path+'filter_'+item+'_cp.jpg',sub_size)
         myplot(source_path+'filter_'+item+'_zp.jpg',sub_size)
-
-
-
-    #plt.show()
-
 
 if __name__ == "__main__":
     main()

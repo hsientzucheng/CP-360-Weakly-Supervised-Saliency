@@ -34,46 +34,6 @@ class VGG(nn.Module):
     def __init__(self, features, num_classes=1000):
         super(VGG, self).__init__()
 
-        '''
-	self.bn1 = nn.BatchNorm2d(64)
-	self.bn2 = nn.BatchNorm2d(128)
-	self.bn3 = nn.BatchNorm2d(256)
-	self.bn4 = nn.BatchNorm2d(512)
-	self.bn5 = nn.BatchNorm2d(512)
-
-        self.conv1_1 = nn.Conv2d(3, 64, 3)
-        self.relu1_1 = nn.ReLU(inplace=True)
-        self.conv1_2 = nn.Conv2d(64, 64, 3)
-        self.relu1_2 = nn.ReLU(inplace=True)
-        self.pool1 = nn.MaxPool2d(2, stride=2)
-        self.conv2_1 = nn.Conv2d(64, 128, 3)
-        self.relu2_1 = nn.ReLU(inplace=True)
-        self.conv2_2 = nn.Conv2d(128, 128, 3)
-        self.relu2_2 = nn.ReLU(inplace=True)
-        self.pool2 = nn.MaxPool2d(2, stride=2)
-        self.conv3_1 = nn.Conv2d(128, 256, 3)
-        self.relu3_1 = nn.ReLU(inplace=True)
-        self.conv3_2 = nn.Conv2d(256, 256, 3)
-        self.relu3_2 = nn.ReLU(inplace=True)
-        self.conv3_3 = nn.Conv2d(256, 256, 3)
-        self.relu3_3 = nn.ReLU(inplace=True)
-        self.pool3 = nn.MaxPool2d(2, stride=2)
-        self.conv4_1 = nn.Conv2d(256, 512, 3)
-        self.relu4_1 = nn.ReLU(inplace=True)
-        self.conv4_2 = nn.Conv2d(512, 512, 3)
-        self.relu4_2 = nn.ReLU(inplace=True)
-        self.conv4_3 = nn.Conv2d(512, 512, 3)
-        self.relu4_3 = nn.ReLU(inplace=True)
-        self.pool4 = nn.MaxPool2d(2, stride=2)
-        self.conv5_1 = nn.Conv2d(512, 512, 3)
-        self.relu5_1 = nn.ReLU(inplace=True)
-        self.conv5_2 = nn.Conv2d(512, 512, 3)
-        self.relu5_2 = nn.ReLU(inplace=True)
-        self.conv5_3 = nn.Conv2d(512, 512, 3)
-        self.relu5_3 = nn.ReLU(inplace=True)
-
-        self.pad = CubePad()
-        '''
         self.features = features
         if CP:
             self.camconv = nn.Sequential(
@@ -89,88 +49,9 @@ class VGG(nn.Module):
             )
         self.avgpool = nn.AvgPool2d(14) #14
         self.classifier = nn.Linear(1024, num_classes)
-        '''
-        self.classifier = nn.Sequential(
-            nn.Linear(512 * 7 * 7, 4096),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(True),
-            nn.Dropout(),
-            nn.Linear(4096, num_classes),
-        )
-        '''
         self._initialize_weights()
-    '''
-    def forward(self, x):
-        x = self.features(x)
-        x = self.camconv(x)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
-        return x
-    '''
     
     def forward(self, x):
-        '''
-        #vgg features
-        x = self.pad(x)
-        x = self.conv1_1(x)
-	x = self.bn1(x)
-        x = self.relu1_1(x)
-        x = self.pad(x)
-        x = self.conv1_2(x)
-	x = self.bn1(x)
-        x = self.relu1_2(x)
-        x = self.pool1(x)
-        x = self.pad(x)
-        x = self.conv2_1(x)
-	x = self.bn2(x)
-        x = self.relu2_1(x)
-        x = self.pad(x)
-        x = self.conv2_2(x) 
-	x = self.bn2(x)
-        x = self.relu2_2(x)
-        x = self.pool2(x)
-        x = self.pad(x)
-        x = self.conv3_1(x)
-	x = self.bn3(x)
-        x = self.relu3_1(x)
-        x = self.pad(x)
-        x = self.conv3_2(x)
-	x = self.bn3(x)
-        x = self.relu3_2(x)
-        x = self.pad(x)
-        x = self.conv3_3(x) 
-	x = self.bn3(x)
-        x = self.relu3_3(x)
-        x = self.pool3(x)
-        x = self.pad(x)
-        x = self.conv4_1(x)
-	x = self.bn4(x)
-        x = self.relu4_1(x)
-        x = self.pad(x)
-        x = self.conv4_2(x)
-	x = self.bn4(x)
-        x = self.relu4_2(x)
-        x = self.pad(x)
-        x = self.conv4_3(x)
-	x = self.bn4(x)
-        x = self.relu4_3(x)
-        x = self.pool4(x)
-        x = self.pad(x)
-        x = self.conv5_1(x)
-	x = self.bn5(x)
-        x = self.relu5_1(x)
-        x = self.pad(x)
-        x = self.conv5_2(x)
-	x = self.bn5(x)
-        x = self.relu5_2(x)
-        x = self.pad(x)
-        x = self.conv5_3(x)
-	x = self.bn5(x)
-        x = self.relu5_3(x)
-        '''
         #cam layers
         x = self.features(x)
         x = self.camconv(x)

@@ -3,7 +3,6 @@ import os
 import sys
 
 sys.path.append('..')
-import pdb
 import datetime
 import argparse
 import math
@@ -25,8 +24,6 @@ from resnet_cubic import resnet50
 
 
 USE_GPU = True
-#MODE = 'vgg16'
-#MODE = 'resnet50'
 
 def cube2equi_layer_cv2(input_data, gridf, face_map):
     '''
@@ -125,7 +122,6 @@ def main():
         if not os.path.exists(local_out_path_feat):
             os.makedirs(local_out_path_feat)
 
-
         cnt=0
         FIRST_FRAME=True
         while(True):
@@ -137,9 +133,7 @@ def main():
                 cur_frame = frame
                 FIRST_FRAME=False
                 continue
-
             cnt+=1
-
             equi_img = Image.fromarray(cur_frame)
             equi_img = equi_img.convert('RGB')
             equi_img = equi_img.resize((1920, 960), resample=Image.LANCZOS)
@@ -169,20 +163,8 @@ def main():
             zp_sal = zp_sal[:,:]**2
             heatmap_img = overlay(equi_img, zp_sal)
             #motion_sal, flow = calcOpticalFlow(cur_frame, frame)
-             
             heatmap_img.save(os.path.join(vid_out_dir,'{0:06}.jpg'.format(cnt)))
-
             np.save(os.path.join(local_out_path_feat,'{0:06}.npy'.format(cnt)),cube_1000scores)
-
-            '''
-            # Output Cubemap?
-            #output_cubeset = equi_to_cube(224, np.array(equi_img))
-            for faceid in output_cubeset.keys():
-                cc_img = Image.fromarray(output_cubeset[faceid])
-                cc_img = cc_img.convert('RGB')
-                cc_img.save(os.path.join(local_out_cube_path,'{0:06}_{1}.jpg'.format(cnt,faceid)))
-            '''
-
             # Output equi image
             #equi_img.save(os.path.join(local_out_path,'{0:06}.jpg'.format(cnt)))
              

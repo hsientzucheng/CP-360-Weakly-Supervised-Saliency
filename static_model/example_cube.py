@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import os
-import pdb
 import datetime
 import argparse
 import math
@@ -68,13 +67,7 @@ def main():
 
         cnt+=1
 
-        #if cnt<110:
-        #    continue
-        
         out_im_path = os.path.join(local_out_path,'{:06}.jpg'.format(cnt))
-        #if os.path.exists(out_im_path):
-        #    print("{} exists".format(out_im_path))
-        #    continue
 
         print("frame {0}, time {1}".format(cnt, datetime.datetime.now()))
 
@@ -121,8 +114,6 @@ def main():
         heatmap = colorize(blended_sal, bytes=True)
         heatmap = Image.fromarray(heatmap[:, :, :3], mode='RGB')
         heatmap_img = overlay(equi_img, heatmap)
-        #plt.imshow(heatmap_img)
-        #plt.show()
         heatmap_img.save(os.path.join(local_out_path,'{0:06}.jpg'.format(cnt)))
         np.save(os.path.join(local_out_path,'{0:06}.npy'.format(cnt)),blended_sal)
         np.save(os.path.join(local_out_path_motion,'{0:06}.npy'.format(cnt)),flow)

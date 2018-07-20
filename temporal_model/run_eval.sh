@@ -2,3 +2,4 @@
 python main.py --dir ../ststic_model/PATH/TO/YOUR/STATIC/FEATURES --model ./checkpoint/PATH/TO/YOUR/MODEL --seql 3 --gt /PATH/TO/YOUR/DATASET
 
 
+

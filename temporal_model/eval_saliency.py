@@ -1,15 +1,8 @@
 
-#=================================================================
-#
-# This code is not usable, but I am too afraid to remove it.
-#
-#=================================================================
-
 from __future__ import print_function
 from __future__ import division
 
 import os, sys
-import pdb
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
@@ -69,7 +62,7 @@ def AUC_Borji(saliency_map, fixation_map, Nsplits=100, stepSize=0.1, to_plot=Fal
         try:
             allthreshes = np.arange(0.0, np.max(np.append(Sth,curfix)), stepSize)[::-1]
         except:
-            pdb.set_trace()
+            print("allthreshes wrong")
         #allthreshes = np.sort(Sth)[::-1]    # descend
         tp = np.zeros(len(allthreshes)+2)
         fp = np.zeros(len(allthreshes)+2)
@@ -80,7 +73,6 @@ def AUC_Borji(saliency_map, fixation_map, Nsplits=100, stepSize=0.1, to_plot=Fal
 
         for i, thresh in enumerate(allthreshes):
             #aboveth = np.sum(S >= thresh)
-            #pdb.set_trace()
             tp[i+1] = np.sum(Sth>=thresh)/float(Nfixations)
             fp[i+1] = np.sum(curfix>=thresh)/float(Nfixations)
 
@@ -88,7 +80,6 @@ def AUC_Borji(saliency_map, fixation_map, Nsplits=100, stepSize=0.1, to_plot=Fal
         
         #allthreshes = np.concatenate(([1], allthreshes, [0]))
     score = np.mean(auc)
-    #pdb.set_trace()
     if to_plot:
         plt.plot(fp, tp, 'b-')
         plt.title('Area under ROC curve: {}'.format(score))
@@ -152,7 +143,6 @@ def AUC_Judd(saliency_map, fixation_map, jitter=True, to_plot=False):
     if to_plot:
         plt.plot(fp, tp, 'b-')
         plt.title('Area under ROC curve: {}'.format(score))
-    #pdb.set_trace()
     return score
 
 
@@ -175,7 +165,6 @@ def CorrCoeff(map1, map2):
     #Calculating mean values
     AM=np.mean(map1)
     BM=np.mean(map2)
-    #pdb.set_trace()
     # Vectorized versions of c,d,e
     c_vect = (map1-AM)*(map2-BM)
     d_vect = (map1-AM)**2
@@ -263,8 +252,6 @@ def main():
     tt_sim = 0.0
     tt_auc_judd = 0.0
 
-    pdb.set_trace()
-
     for data_item in data_list:
         
         tStart = time.time()
@@ -275,10 +262,6 @@ def main():
         vid_tt_num = 0 #video steps
         data_cnt +=1
         print(str(data_cnt)+"/"+str(len(data_list)))
-        #if not data_item in input_list:
-        #    continue 
-        #if not data_item+'.mp4' in gt_list:
-        #    continue 
 
         gt_path = os.path.join(gt_dir,data_item+'.mp4')
         input_path = os.path.join(input_dir,data_item)
@@ -351,7 +334,6 @@ def main():
     
 
     print("total result:"+str(tt_sim/tt_num)+", "+str(tt_cc/tt_num)+", "+str(tt_auc_judd/tt_num))
-    pdb.set_trace() 
     print("done!")
 
 if __name__ == '__main__':

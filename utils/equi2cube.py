@@ -1,4 +1,3 @@
-import pdb
 import os
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
@@ -188,10 +187,6 @@ def main():
             out_td_equi[:480,1920:,:]=output_cubeset[5]
             out_td_equi[480:,1920:,:]=output_cubeset[1]
             out_td_equi[:,:1920,:]=np.array(equi_img)
-            #for faceid in output_cubeset.keys():
-            #    cc_img = Image.fromarray(output_cubeset[faceid])
-            #    cc_img = cc_img.convert('RGB')
-                #cc_img.save(os.path.join(local_out_cube_path,'{0:06}_{1}.jpg'.format(cnt,faceid)))
             '''equi_img'''
             out_td_equi = out_td_equi.astype(np.int)
             out_td_equi_img = Image.fromarray(np.uint8(out_td_equi))

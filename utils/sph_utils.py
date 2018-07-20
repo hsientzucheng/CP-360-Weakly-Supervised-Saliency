@@ -1,8 +1,4 @@
-
-
-import pdb
 import matplotlib.patches as patches
-
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
@@ -25,7 +21,6 @@ FACE_R = 4
 FACE_T = 5
 
 def xy2angle(XX,YY,im_w,im_h):
-    #pdb.set_trace()
     _XX = 2*(XX+0.5)/float(im_w)-1
     _YY = 1-2*(YY+0.5)/float(im_h)
 
@@ -80,7 +75,6 @@ def get_face(x, y, z, face_map):
     face_show = cv2.applyColorMap(face_show.astype(uint8), cv2.COLORMAP_RAINBOW)
     cv2.imshow('a',face_show)
     cv2.imwrite('cube_to_equi.jpg',face_show)
-    pdb.set_trace()
     '''
     return face_map
 
@@ -187,7 +181,6 @@ def cube2equi_layer(input_data, gridf, face_map, no_interp):
 
     output: 1 * 2w * 4w * c
     '''
-    #pdb.set_trace()
     out_w = gridf.shape[1]
     out_h = gridf.shape[0]
     in_width=out_w/4
@@ -274,6 +267,5 @@ def cube2equi_layer(input_data, gridf, face_map, no_interp):
         out_arr = np.multiply(Ia,wa3)+np.multiply(Ib,wb3)+np.multiply(Ic,wc3)+np.multiply(Id,wd3)
 
     out_arr = np.expand_dims(out_arr, axis=0)
-    #pdb.set_trace()
     return np.array(out_arr,dtype=np.float32)
 

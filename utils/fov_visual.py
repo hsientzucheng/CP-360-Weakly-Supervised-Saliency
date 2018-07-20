@@ -1,4 +1,3 @@
-import pdb
 import matplotlib.patches as patches
 import os
 import matplotlib.pyplot as plt
@@ -33,7 +32,6 @@ def rotation_matrix(axis, theta):
 
 def func_warp_image(Px, Py, frame, warp_method):
 
-    #pdb.set_trace()
     sphW = Px.shape[1]
     sphH = Px.shape[0]
 
@@ -269,7 +267,6 @@ def draw_cube_faces():
     for step in [5,0,2,3,4]:
         out_based_img[crop_fov_masks[step]] = out_imgs[step][crop_fov_masks[step]]
    
-    pdb.set_trace()
     cv2.imwrite('/Users/Jim/Desktop/'+img_name.split('.')[0]+'_cubevis.jpg',cv2.resize(out_based_img*255, (1000,500)))
 
 

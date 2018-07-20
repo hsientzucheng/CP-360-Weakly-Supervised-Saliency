@@ -2,7 +2,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os, sys
-import pdb
 import time
 import numpy as np
 sys.path.append('..')
@@ -27,9 +26,6 @@ from eval_saliency import similarity
 
 HIDDEN_SIZE = 1000
 INPUT_SIZE = 1000
-
-#FRAMES_IN_SUBSEQ = 5
-
 
 def test(model, vid_name, seq, indir, output_dir, gt_dir, FRAMES_IN_SUBSEQ):    
  
@@ -70,7 +66,6 @@ def test(model, vid_name, seq, indir, output_dir, gt_dir, FRAMES_IN_SUBSEQ):
         cell = Variable(torch.FloatTensor(init_frame)).cuda(async=True)
         hidden = Variable(torch.FloatTensor(init_frame)).cuda(async=True)
         # inference a subsequence
-        #print(frame_filename+', '+str(len(subseq)))
         for frame in subseq:
             frame = (frame - min_in_subseq) / (max_in_subseq - min_in_subseq)
             frame = Variable(torch.FloatTensor(frame)).cuda(async=True)
@@ -114,12 +109,10 @@ def main():
     parser.add_argument('--gt', type=str, help='gt path e.g. /media/raul/6d82a58e-25ab-480a-90eb-1cb88e379370/jimcheng/output25', required=True)
 
     args, unparsed = parser.parse_known_args()
-    #FRAMES_IN_SUBSEQ = args.seql
 
     # obtain all the video names in test set
     vid_names = open('../utils/test_25.txt', 'r').read().splitlines()
 
-    #vid_names = [vid_names[0]]
     # construct the cam frame list for each video
     cam_dict = {}
     for vid_name in vid_names:
@@ -145,15 +138,12 @@ def main():
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir)
     for idx, vid_name in enumerate(vid_names):
-        #if vid_name != 'Q_BavaspcFc_2':
-        #    continue
         print("Extracting video {}[{}/{}]".format(vid_name, idx+1, len(vid_names)))
         auc, cc, sim, aucb = test(model, vid_name, cam_dict[vid_name], args.dir, args.outdir, args.gt, args.seql)
 
         print("[{}]\tAUCB:{}".format(vid_name, np.mean(aucb)))
         print("[{}]\tAUC:{}".format(vid_name, np.mean(auc)))
         print("[{}]\tCC:{}".format(vid_name, np.mean(cc)))
-        #print("[{}]\tSIM:{}".format(vid_name, np.mean(sim)))
         AUC = np.append(AUC, np.mean(auc))
         AUCB = np.append(AUCB, np.mean(aucb))
         CC = np.append(CC, np.mean(cc))
@@ -167,8 +157,6 @@ def main():
     print('========== AUC: {}\tCC: {}\wAUCB: {}'.format(wAUC, wCC, wAUCB))
     with open("{}_result.txt".format(args.dir.split('/')[-1]), "w") as text_file:
         print("total result:"+str(wCC)+", "+str(wAUC)+", "+str(wAUCB), file=text_file)
-
-    
 
 if __name__ == '__main__':
     main()

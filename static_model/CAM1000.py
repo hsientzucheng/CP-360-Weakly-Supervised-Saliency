@@ -2,20 +2,15 @@ from __future__ import division
 from __future__ import print_function
 import os, sys
 sys.path.append('..')
-
-import pdb
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-
 import torch
 import torch.nn as nn
 from utils.sph_utils import cube2equi
 from torchvision import transforms
 from torch.autograd import Variable
-
 from PIL import Image
-
 from collections import Counter
 
 def overlay(img, heatmap, cmap='jet', alpha=0.5):
@@ -77,7 +72,6 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
         weight_softmax-=np.min(weight_softmax)
 
     # from BZ x H x W x C to BZ x C x H x W
-    # pdb.set_trace()
     img = img.permute(0, 3, 1, 2).contiguous()
 
     if USE_GPU:
@@ -89,31 +83,16 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
     tStart = time.time()
     output = model(img)
     tEnd = time.time()
-    #print("It takes {0} sec".format(tEnd - tStart))
 
     cubic_feature = feature_maps[0]
-
 
     # compute CAM
     bz, nc, h, w = cubic_feature.shape
     #out_feature = np.transpose(cubic_feature, (0, 3, 1, 2))
     features = cubic_feature.reshape(bz, nc, h*w)
 
-
     cams = []
     
-    '''
-    # compute un-weighted CAM by class #
-    for class_idx, _ in top5:
-        cam = np.expand_dims(weight_softmax[class_idx], 0).dot(features)
-        cam = cam.reshape(h, w)
-        cam = cam - np.min(cam)
-        cam = cam / np.max(cam)
-        cam_img = np.uint8(255 * cam)
-        result = overlay(input_equi, cam_img)
-        cams.append(result)
-    ####################################
-    '''
     cube_score = np.array([])
     for idx in range(features.shape[0]):
         if cube_score.shape[0] ==0:

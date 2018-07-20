@@ -1,4 +1,3 @@
-import pdb
 import torch
 from torch import nn
 import torch.nn.functional as f
@@ -191,7 +190,6 @@ class CubePadding(nn.Module):
         if p_d!=0 and p_l!=0:
             p_dl = self.make_cubepad_edge(_d123456[:,:,:p_d,:1],_l123456[:,:,-1:,-p_l:])
 
-        #pdb.set_trace()
         # 6 x c x 1 for each
 
         if p_r!=0:

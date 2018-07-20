@@ -1,4 +1,3 @@
-import pdb
 import os, sys
 import torch
 from torch import nn
@@ -9,11 +8,11 @@ import matplotlib.pyplot as plt
 from torch.nn.parameter import Parameter
 sys.path.append('..')
 from utils.CubePad import CubePad
+
 # Define some constants
 KERNEL_SIZE = 3
 #PADDING = KERNEL_SIZE // 2
 PADDING = 0
-
 CP = True
 
 class ConvLSTMCell(nn.Module):
@@ -51,7 +50,6 @@ class ConvLSTMCell(nn.Module):
         prev_hidden, prev_cell = prev_state
 
         # data size is [batch, channel, height, width]
-        
         stacked_inputs = torch.cat((input_, prev_hidden), 1)
         out = self.pad(stacked_inputs)
         out = self.Conv1(out)
@@ -103,3 +101,4 @@ class ConvLSTMCell(nn.Module):
                 print("skip loading key '{}' due to inconsistent size".format(name))
 
         self.load_state_dict(custom_state_dict)
+
