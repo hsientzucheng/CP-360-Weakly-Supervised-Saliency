@@ -10,8 +10,8 @@ To get Wild-360 dataset, check our [project website](http://aliensunmin.github.i
 - tqdm, skvideo, cv2, scipy, matplotlib
 
 ## Run
-First you can download our model [here]() and put it into "temporal_model/checkpoint".
-After having the model and setting up the environment, you can run this code directly by
+- First you can download our model [here](https://drive.google.com/file/d/1uOI4c9ojCU0pvUHN4cdf-JYUyWqkf-gm/view?usp=sharing) and put it into "temporal_model/checkpoint".
+- After having the model and setting up the environment, you can run this code directly by
 ```
 bash run.sh
 ```
