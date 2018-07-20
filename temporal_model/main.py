@@ -117,7 +117,7 @@ def main():
     #FRAMES_IN_SUBSEQ = args.seql
 
     # obtain all the video names in test set
-    vid_names = open('test_25.txt', 'r').read().splitlines()
+    vid_names = open('../utils/test_25.txt', 'r').read().splitlines()
 
     #vid_names = [vid_names[0]]
     # construct the cam frame list for each video

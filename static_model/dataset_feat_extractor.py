@@ -94,7 +94,7 @@ def main():
     vid_num = 0
 
     if TEST_ONLY:
-        in_file = open('./test_25.txt', "r")
+        in_file = open('../utils/test_25.txt', "r")
         ddd_list = in_file.readlines()
         data_list = [x.split('\n')[0]+'.mp4' for x in ddd_list]
 
