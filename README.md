@@ -1,5 +1,5 @@
 # CP-360-Weakly-Supervised-Saliency
-This is the code for the paper [Cube Padding for Weakly-Supervised Saliency Prediction in 360° Videos](http://aliensunmin.github.io/project/360saliency/)
+This is the partial code for the paper [Cube Padding for Weakly-Supervised Saliency Prediction in 360° Videos](http://aliensunmin.github.io/project/360saliency/)
 
 ## Dataset 
 To get Wild-360 dataset, check our [project website](http://aliensunmin.github.io/project/360saliency/).
