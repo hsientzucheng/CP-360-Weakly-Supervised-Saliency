@@ -10,7 +10,7 @@ To get Wild-360 dataset, check our [project website](http://aliensunmin.github.i
 - tqdm, skvideo, cv2, scipy, matplotlib
 
 ## Run
-After setting up the environment, you can run it directly by run.sh
+After setting up the environment, you can run it directly by
 ```
 bash run.sh
 ```
