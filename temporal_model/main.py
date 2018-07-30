@@ -2,21 +2,16 @@ from __future__ import division
 from __future__ import print_function
 
 import os, sys
-import time
 import numpy as np
 sys.path.append('..')
 import argparse
 import torch
 import torchvision
-import torch.nn as nn
-import torchvision.transforms as transforms
 import cv2
 import tqdm
 
-from torch.utils.data import DataLoader
 from torch.autograd import Variable
-
-from utils.sph_utils import cube2equi, nn_cube2equi_layer
+from utils.Cube2Equi import Cube2Equi
 from clstm import ConvLSTMCell
 
 from eval_saliency import AUC_Borji
@@ -27,8 +22,7 @@ from eval_saliency import similarity
 HIDDEN_SIZE = 1000
 INPUT_SIZE = 1000
 
-def test(model, vid_name, seq, indir, output_dir, gt_dir, FRAMES_IN_SUBSEQ):    
- 
+def test(model, vid_name, seq, indir, output_dir, gt_dir, FRAMES_IN_SUBSEQ, c2e):
 
     # open video
     cap = cv2.VideoCapture(os.path.join('test', vid_name))
@@ -73,10 +67,8 @@ def test(model, vid_name, seq, indir, output_dir, gt_dir, FRAMES_IN_SUBSEQ):
             hidden, cell = model(frame, [hidden, cell])
         # output for each subseq
         output = hidden
-        grid, face_map = cube2equi(output.size(2))
-        grid = Variable(torch.Tensor(grid).contiguous()).cuda(async=True)
-        face_map = Variable(torch.LongTensor(face_map.astype(np.int)).contiguous()).cuda(async=True)
-        equi_output = nn_cube2equi_layer(output, grid, face_map)
+
+        equi_output = c2e.to_equi_nn(output)
         equi_output = torch.max(equi_output, 1)[0]
         equi_output = torch.squeeze(equi_output)
         equi_output = equi_output.data.cpu().numpy()
@@ -111,7 +103,7 @@ def main():
     args, unparsed = parser.parse_known_args()
 
     # obtain all the video names in test set
-    vid_names = open('../utils/test_25.txt', 'r').read().splitlines()
+    vid_names = open('../utils/test.txt', 'r').read().splitlines()
 
     # construct the cam frame list for each video
     cam_dict = {}
@@ -139,7 +131,10 @@ def main():
         os.makedirs(args.outdir)
     for idx, vid_name in enumerate(vid_names):
         print("Extracting video {}[{}/{}]".format(vid_name, idx+1, len(vid_names)))
-        auc, cc, sim, aucb = test(model, vid_name, cam_dict[vid_name], args.dir, args.outdir, args.gt, args.seql)
+        if idx==0:
+            frame = np.load(os.path.join(args.dir, vid_name, 'cube_feat', cam_dict[vid_name][0]))
+            c2e = Cube2Equi(int(frame.shape[2]))
+        auc, cc, sim, aucb = test(model, vid_name, cam_dict[vid_name], args.dir, args.outdir, args.gt, args.seql, c2e)
 
         print("[{}]\tAUCB:{}".format(vid_name, np.mean(aucb)))
         print("[{}]\tAUC:{}".format(vid_name, np.mean(auc)))

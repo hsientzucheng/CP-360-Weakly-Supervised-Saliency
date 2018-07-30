@@ -1,13 +1,13 @@
 import os, sys
 import torch
-from torch import nn
-import torch.nn.functional as f
-from torch.autograd import Variable
 import math
 import matplotlib.pyplot as plt
+import torch.nn.functional as f
 from torch.nn.parameter import Parameter
+from torch import nn
 sys.path.append('..')
 from utils.CubePad import CubePad
+from torch.autograd import Variable
 
 # Define some constants
 KERNEL_SIZE = 3

@@ -1,11 +1,11 @@
 import matplotlib.patches as patches
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import math as m
 from itertools import product, combinations
 from scipy.interpolate import RegularGridInterpolator as interp2d
-import math as m
+from mpl_toolkits.mplot3d import Axes3D
 from pylab import *
 '''
 rot_ax90 = {'x': np.array([[1,0,0],[0,0,-1],[0,1,0]]),
@@ -18,7 +18,6 @@ rot_ax90 = {'x': np.array([[1,0,0],[0,0,-1],[0,1,0]]),
 
 rad45 = np.pi/4
 rad135 = np.pi*3/4
-#PHI_BOUND=m.atan(1/m.sqrt(2))
 
 def xy2angle(XX,YY,im_w,im_h):
     _XX = 2*XX/float(im_w)-1
@@ -65,7 +64,6 @@ def over_pi(angle):
 
 def to_3dcube(theta,phi,R):
 
-    #print PHI_BOUND
     x,y,z = to_3dsphere(theta,phi,R)
 
     output_cube = np.array([x,y,z])
@@ -265,8 +263,6 @@ def main():
 
     myplot('/Users/Jim/Desktop/ski_test.jpg',sub_size)
     plt.show()
-    #cubeplot('/Users/Jim/Desktop/test_frames_ll4/cube_',view_th,view_ph)
-    #items = ['188','193','208','224']
     items = ['224','193']
     # plot cube map directly 
     #cubeplot(source_path+'ski_test_cube/cube_',view_th,view_ph)

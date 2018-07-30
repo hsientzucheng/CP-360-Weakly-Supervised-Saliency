@@ -6,12 +6,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 import torch
-import torch.nn as nn
-from utils.sph_utils import cube2equi
-from torchvision import transforms
 from torch.autograd import Variable
 from PIL import Image
-from collections import Counter
 
 def overlay(img, heatmap, cmap='jet', alpha=0.5):
     if isinstance(img, np.ndarray):
@@ -69,7 +65,7 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
     else:
         weight_softmax = np.squeeze(params.numpy())
     if np.min(weight_softmax) < 0:
-        weight_softmax-=np.min(weight_softmax)
+        weight_softmax -= np.min(weight_softmax)
 
     # from BZ x H x W x C to BZ x C x H x W
     img = img.permute(0, 3, 1, 2).contiguous()

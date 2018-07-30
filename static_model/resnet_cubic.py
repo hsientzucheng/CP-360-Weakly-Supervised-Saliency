@@ -111,9 +111,7 @@ class ResNet(nn.Module):
         self.inplanes = 64
         super(ResNet, self).__init__()
         if CP:
-            #self.pad3 = CubePad(pad=3)
             self.cp = CubePadding()
-            #self.pad1 = CubePad(pad=1)
         else:
             self.pad3 = ZeroPad(pad=3)
             self.pad1 = ZeroPad(pad=1)

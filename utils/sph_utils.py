@@ -20,6 +20,32 @@ FACE_L = 3
 FACE_R = 4
 FACE_T = 5
 
+def rotx(ang):
+    return np.array([[1,0,0],
+            [0, np.cos(ang), -np.sin(ang)],
+            [0, np.sin(ang), np.cos(ang)]])
+
+def roty(ang):
+    return np.array([[np.cos(ang),0,np.sin(ang)],
+            [0,1,0],
+            [-np.sin(ang),0,np.cos(ang)]])
+
+def rotz(ang):
+    return np.array([[np.cos(ang), -np.sin(ang), 0],
+            [np.sin(ang), np.cos(ang), 0],
+             [0,0,1]])
+
+def rotation_matrix(axis, theta):
+    axis = np.asarray(axis)
+    axis = axis/math.sqrt(np.dot(axis, axis))
+    a = math.cos(theta/2.0)
+    b, c, d = -axis*math.sin(theta/2.0)
+    aa, bb, cc, dd = a*a, b*b, c*c, d*d
+    bc, ad, ac, ab, bd, cd = b*c, a*d, a*c, a*b, b*d, c*d
+    return np.array([[aa+bb-cc-dd, 2*(bc+ad), 2*(bd-ac)],
+                     [2*(bc-ad), aa+cc-bb-dd, 2*(cd+ab)],
+                     [2*(bd+ac), 2*(cd-ab), aa+dd-bb-cc]])
+
 def xy2angle(XX,YY,im_w,im_h):
     _XX = 2*(XX+0.5)/float(im_w)-1
     _YY = 1-2*(YY+0.5)/float(im_h)
@@ -123,57 +149,8 @@ def norm_to_cube(_out_coord,w):
 
 TF_TRANS=False
 
-def cube2equi(input_w):
-    scale_c=1
-    in_width = input_w*scale_c
-    out_w = in_width*4
-    out_h = in_width*2
-    out_arr = np.zeros((out_h,out_w,3),dtype='float32')
 
-    face_map = np.zeros((out_h,out_w)) # for face indexing
-
-    XX, YY = np.meshgrid(range(out_w),range(out_h)) # for output grid
-
-    theta, phi = xy2angle(XX, YY, out_w, out_h)
-    theta = pruned_inf(theta)
-    phi = pruned_inf(phi)
-
-    _x,_y,_z = to_3dsphere(theta,phi,1)
-    face_map = get_face(_x,_y,_z,face_map)
-    x_o, y_o = face_to_cube_coord(face_map,_x,_y,_z)
-
-    out_coord = np.transpose(np.array([x_o,y_o]),(1,2,0))  # h x w x 2
-    out_coord = norm_to_cube(out_coord, in_width)
-    #if TF_TRANS:
-        #return tf.constant(out_coord), tf.constant(face_map)
-    #else:
-    return out_coord, face_map
-
-
-def nn_cube2equi_layer(input_data, gridf, face_map):
-    ''' 
-    input_data: 6 * c * w * w 
-    gridf: 2w * 4w * 2
-    face_map: 2w * 4w
-
-    output: 1 * c * 2w * 4w
-    '''
-    out_w = int(gridf.size(1))
-    out_h = int(gridf.size(0))
-    in_width=out_w/4
-    depth = input_data.size(1)
-    warp_out = Variable(torch.Tensor(np.zeros((1, depth, out_h, out_w),dtype='float32')),requires_grad=True).cuda()
-
-    gridf = (gridf-torch.max(gridf)/2)/(torch.max(gridf)/2)
-
-    for f_idx in range(0,6):
-        face_mask = face_map==f_idx
-        expanded_face_mask = face_mask.expand(1,input_data.size(1),face_mask.size(0), face_mask.size(1))
-        warp_out[expanded_face_mask] = nn.functional.grid_sample(torch.unsqueeze(input_data[f_idx], 0), torch.unsqueeze(gridf, 0))[expanded_face_mask]
-    return warp_out
-
-
-def cube2equi_layer(input_data, gridf, face_map, no_interp):
+def naive_cube2equi_layer(input_data, gridf, face_map, no_interp):
     '''
     input_data: 6 * w * w * c
     gridf: 2w * 4w * 2
