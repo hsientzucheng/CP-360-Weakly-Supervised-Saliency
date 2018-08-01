@@ -22,7 +22,7 @@ from eval_saliency import similarity
 HIDDEN_SIZE = 1000
 INPUT_SIZE = 1000
 
-def test(model, vid_name, seq, indir, output_dir, gt_dir, FRAMES_IN_SUBSEQ, c2e):
+def test(model, vid_name, seq, indir, output_dir, gt_dir, FRAMES_IN_SUBSEQ, c2e, save_result=True):
 
     # open video
     cap = cv2.VideoCapture(os.path.join('test', vid_name))
@@ -72,7 +72,9 @@ def test(model, vid_name, seq, indir, output_dir, gt_dir, FRAMES_IN_SUBSEQ, c2e)
         equi_output = torch.max(equi_output, 1)[0]
         equi_output = torch.squeeze(equi_output)
         equi_output = equi_output.data.cpu().numpy()
-        np.save(os.path.join(output_dir, vid_name, '{:05}.npy'.format(idx+4)), equi_output)
+        if save_result == True:
+            np.save(os.path.join(output_dir, vid_name, '{:05}.npy'.format(idx+4)), equi_output)
+        
 
         # Evaluation section
         # load ground truth
@@ -103,7 +105,7 @@ def main():
     args, unparsed = parser.parse_known_args()
 
     # obtain all the video names in test set
-    vid_names = open('../utils/test.txt', 'r').read().splitlines()
+    vid_names = open('../utils/test_25.txt', 'r').read().splitlines()
 
     # construct the cam frame list for each video
     cam_dict = {}

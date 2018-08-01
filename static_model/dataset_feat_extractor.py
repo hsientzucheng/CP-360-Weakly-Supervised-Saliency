@@ -90,6 +90,8 @@ def main():
         if not os.path.exists(vid_out_dir):
             os.makedirs(vid_out_dir)
         else:
+            print("{} exists.".format(local_out_path))
+            continue
             if raw_input("Sure to overwrite {}? [Y/N]".format(local_out_path)) == 'N':
                 continue
  

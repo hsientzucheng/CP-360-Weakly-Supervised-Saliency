@@ -9,9 +9,8 @@ import numpy as np
 sys.path.append('..')
 import time
 import cv2
-
-from utils.sph_utils import cube2equi
 from PIL import Image
+from utils.Cube2Equi import Cube2Equi
 
 def AUC_Borji(saliency_map, fixation_map, Nsplits=100, stepSize=0.1, to_plot=False):
     # saliency_map is the saliency map
@@ -200,29 +199,6 @@ def parse_args():
 
     return args
 
-def cube2equi_layer_cv2(input_data, gridf, face_map):
-    '''
-    input_data: 6 * w * w * c
-    gridf: 2w * 4w * 2
-    face_map: 2w * 4w
-
-    output: 1 * 2w * 4w * c
-    '''
-    out_w = gridf.shape[1]
-    out_h = gridf.shape[0]
-    in_width=out_w/4   
-    depth = input_data.shape[1]
-
-    gridf = gridf.astype(np.float32)
-    out_arr = np.zeros((out_h, out_w, depth),dtype='float32')
-    
-    input_data = np.transpose(input_data, (0, 2, 3, 1))
-
-    for f_idx in range(0,6):
-        for dept in range(1000//4):
-            out_arr[face_map==f_idx, 4*dept:4*(dept+1)] = cv2.remap(input_data[f_idx,:,:,4*dept:4*(dept+1)], gridf[:,:,0], gridf[:,:,1],cv2.INTER_CUBIC)[face_map==f_idx]
-    return np.transpose(out_arr, (2,0,1)) 
-
 def get_vid_list(in_dir):
     out_list = []
 
@@ -282,17 +258,14 @@ def main():
             try:
                 gt = np.load(os.path.join(gt_path, data_npy))
                 zp = np.load(os.path.join(input_path, 'cube_feat/feat_0'+data_npy))
-                #zp = np.load(os.path.join(input_path, 'feat_0'+data_npy))
             except:
                 print("skip "+data_npy)
                 continue
 
             gt_sal = cv2.resize(gt, (200, 100), 2)
-            #equi_sal = np.squeeze(np.max(equi,1),0)
-            #zp_sal = np.squeeze(np.max(zp,1),0)
             if zp.shape[2]==zp.shape[3]:
-                grid, face_map = cube2equi(zp.shape[2])
-                zp_equi = cube2equi_layer_cv2(zp, grid, face_map) 
+                c2e = Cube2Equi(zp.shape[2])
+                zp_equi = c2e.to_equi_cv2(zp)
                 zp_sal = np.max(zp_equi,0)
             else:
                 zp_equi = np.squeeze(zp,0)
