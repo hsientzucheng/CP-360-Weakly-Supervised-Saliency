@@ -1,6 +1,5 @@
 import os, sys
 import numpy as np
-sys.path.append('..')
 import argparse
 import torch
 import torchvision
@@ -14,7 +13,7 @@ from torch.autograd import Variable
 from utils.cube_to_equi import Cube2Equi
 from model.clstm import ConvLSTMCell
 from utils.eval_saliency import AUC_Borji, AUC_Judd, CorrCoeff, similarity
-
+sys.path.append('..')
 
 def test(model, vid_name, seq, indir, output_dir, gt_dir, num_subseq,
         c2e, save_img=False, save_result=True):
