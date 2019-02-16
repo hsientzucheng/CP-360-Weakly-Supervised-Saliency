@@ -183,7 +183,7 @@ class CubePadding(nn.Module):
         else:
             tdlr_out = tdl_out
         return tdlr_out
-
+"""
 class ZeroPad(nn.Module):
     """ This ZeroPad is for compuational efficiency experiment only"""
     def __init__(self, lrtd_pad, use_gpu=True):
@@ -217,14 +217,6 @@ class ZeroPad(nn.Module):
         if self.p_l != 0: x = torch.cat((pad_col_l, x), 3)
         if self.p_r != 0: x = torch.cat((x, pad_col_r), 3)
 
-        return x
-
-"""
-class NoOp(nn.Module):
-    def __init__(self):
-        super(NoOp, self).__init__()
-
-    def forward(self, x):
         return x
 """
 
