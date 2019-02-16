@@ -15,30 +15,51 @@ Tested under
 - Python == 3.6
 - PyTorch >= 0.3
 - cv2 == 3.4.2
-- tqdm, scipy, matplotlib, PIL, ruamel_yaml, collections
+- Other dependencies:
+    - tqdm, scipy, matplotlib, PIL, ruamel_yaml, collections
 
 ## Model
 ### CubePadding
+
+<img src="./images/cubeprojection.jpg" width="50%"/>
+
+<img src="./images/feature_map_visual.jpg" width="50%"/>
+
 You can test the cube padding module by simply execute cube_pad.py
 ```
-python [PATH of CP-360-Weakly-Supervised-Saliency]/model/cube_pad.py
+python [CP-360-Weakly-Supervised-Saliency PATH]/model/cube_pad.py
 ```
+
 ### Pretrained model
 You can download our convolution LSTM model [here](https://drive.google.com/file/d/1uOI4c9ojCU0pvUHN4cdf-JYUyWqkf-gm/view?usp=sharing)
 The model should be put into the directory:
 ```
-[PATH of CP-360-Weakly-Supervised-Saliency]/checkpoint/model.pth
+[CP-360-Weakly-Supervised-Saliency PATH]/checkpoint/CLSTM_model_released.pth
 ```
 
 ## Inference
 - To run the inference process, you should first modify the config file
-- After having the model, installing requirements, and setting up the configurations
-
 ```
-bash run.sh
+vim [CP-360-Weakly-Supervised-Saliency PATH]/config.yaml
 ```
 
-## TODOs
-[v] visualization code
-[v] revised cube padding
-[] clstm training code
+- After installing requirements and setting up the configurations, the static model can be run as:
+```
+cd static_model
+python dataset_feat_extractor.py --mode resnet50 --output_img
+```
+
+- Having the features from the static model, run the temporal model by:
+```
+cd temporal_model
+python test_temporal.py --dir ../output/static_resnet50 --model CLSTM_model_released.pth --overlay
+```
+
+- These commands are in the script, just run:
+```
+bash inference.sh
+```
+
+## Results
+<img src="./images/result.jpg" width="100%"/>
+
