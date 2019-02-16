@@ -61,5 +61,6 @@ bash inference.sh
 ```
 
 ## Results
-<img src="./images/result.jpg" width="100%"/>
+<img src="./images/result.jpg" width="80%"/>
+In each block, consecutive frames of various methods, ground truth, and raw videos are shown in the left panel. We highlight regions for comparison using white dash rectangles. In the right panel, one example is zoom-in (red box) and two salient NFoVs (yellow boxes) are rendered. Our temporal method (Ours) significantly outperforms others in overcoming distortion, image boundaries, and smoothness in time. See more examples in supplementary materials.
 
