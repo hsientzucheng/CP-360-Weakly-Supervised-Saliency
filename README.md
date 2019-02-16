@@ -36,6 +36,7 @@ The model should be put into the directory:
 
 ## Dataset 
 To get Wild-360 dataset, check our [project website](http://aliensunmin.github.io/project/360saliency/).
+
 We use 25 videos for testing and 60 for training as shown in txt files in utils.
 ### Ground truth annotated fixations + sample heatmap visualization
 ```
