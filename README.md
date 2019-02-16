@@ -23,7 +23,7 @@ Tested under
 
 <img src="./images/cubeprojection.jpg" width="50%"/>
 
-<img src="./images/feature_map_visual.jpg" width="50%"/>
+<img src="./images/feature_map_visual.jpg" width="80%"/>
 
 You can test the cube padding module by simply execute cube_pad.py
 ```
@@ -65,5 +65,4 @@ bash inference.sh
 In each block, consecutive frames of various methods, ground truth, and raw videos are shown in the left panel. 
 We highlight regions for comparison using white dash rectangles. 
 In the right panel, one example is zoom-in (red box) and two salient NFoVs (yellow boxes) are rendered. 
-Our temporal method (Ours) significantly outperforms others in overcoming distortion, image boundaries, and smoothness in time. See more examples in supplementary materials.
 
