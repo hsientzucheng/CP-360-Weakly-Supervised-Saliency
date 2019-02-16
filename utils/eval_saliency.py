@@ -1,4 +1,3 @@
-
 from __future__ import print_function
 from __future__ import division
 
@@ -6,11 +5,12 @@ import os, sys
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
-sys.path.append('..')
 import time
 import cv2
+sys.path.append('..')
+
 from PIL import Image
-from utils.Cube2Equi import Cube2Equi
+from utils.cube_to_equi import Cube2Equi
 
 def AUC_Borji(saliency_map, fixation_map, Nsplits=100, stepSize=0.1, to_plot=False):
     # saliency_map is the saliency map

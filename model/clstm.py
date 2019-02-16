@@ -3,24 +3,23 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import torch.nn.functional as f
+#import ruamel.yaml as yaml
 from torch.nn.parameter import Parameter
 from torch import nn
 sys.path.append('..')
-from utils.CubePad import CubePad
+from model.cube_pad import CubePad
 from torch.autograd import Variable
 
 # Define some constants
 KERNEL_SIZE = 3
 #PADDING = KERNEL_SIZE // 2
 PADDING = 0
-CP = True
 
 class ConvLSTMCell(nn.Module):
     """
     Generate a convolutional LSTM cell
     """
-
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_size, hidden_size, cp=True):
         super(ConvLSTMCell, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -30,10 +29,10 @@ class ConvLSTMCell(nn.Module):
         self.Gates = nn.Conv2d(4 * hidden_size, 4 * hidden_size, KERNEL_SIZE, padding=PADDING)
         self.LSoftMax = nn.LogSoftmax()
         self._initialize_weights()
-        if CP:
-            self.pad = CubePad()
+        if cp:
+            self.pad = CubePad(1)
         else:
-            self.pad = ZeroPad()
+            self.pad = ZeroPad(1)
 
     def forward(self, input_, prev_state=None):
         # get batch and spatial sizes
@@ -49,7 +48,7 @@ class ConvLSTMCell(nn.Module):
 
         prev_hidden, prev_cell = prev_state
 
-        # data size is [batch, channel, height, width]
+        # Data size is [batch, channel, height, width]
         stacked_inputs = torch.cat((input_, prev_hidden), 1)
         out = self.pad(stacked_inputs)
         out = self.Conv1(out)
@@ -60,18 +59,18 @@ class ConvLSTMCell(nn.Module):
         out = self.pad(out)
         gates = self.Gates(out)
 
-        # chunk across channel dimension
+        # Chunk across channel dimension
         in_gate, remember_gate, out_gate, cell_gate = gates.chunk(4, 1)
 
-        # apply sigmoid non linearity
+        # Apply sigmoid non linearity
         in_gate = f.sigmoid(in_gate)
         remember_gate = f.sigmoid(remember_gate)
         out_gate = f.sigmoid(out_gate)
 
-        # apply tanh non linearity
+        # Apply tanh non linearity
         cell_gate = f.tanh(cell_gate)
 
-        # compute current cell and hidden state
+        # Compute current cell and hidden state
         cell = (remember_gate * prev_cell) + (in_gate * cell_gate)
         hidden = out_gate * f.tanh(cell)
         hidden_softmax = self.LSoftMax(hidden)
@@ -85,20 +84,14 @@ class ConvLSTMCell(nn.Module):
                 if m.bias is not None:
                     m.bias.data.zero_()
 
-    # homemade pre-trained model loading function according to order only :)
     def load_pretrained_model_seq(self, pretrained_state_dict):
-
         custom_state_dict = self.state_dict()
-        # cname cparam pname pparam
         for name, param in zip(custom_state_dict.keys(), pretrained_state_dict.values()):
-
             if isinstance(param, Parameter):
                 param = param.data
-
             try:
                 custom_state_dict[name].copy_(param)
             except:
                 print("skip loading key '{}' due to inconsistent size".format(name))
-
         self.load_state_dict(custom_state_dict)
 

@@ -1,34 +1,21 @@
 from __future__ import division
 from __future__ import print_function
+
 import os, sys
 sys.path.append('..')
-import numpy as np
-import matplotlib.pyplot as plt
 import time
 import torch
+import matplotlib.pyplot as plt
+import numpy as np
+#import ruamel.yaml as yaml
+
+from utils.utils import overlay
 from torch.autograd import Variable
 from PIL import Image
 
-def overlay(img, heatmap, cmap='jet', alpha=0.5):
-    if isinstance(img, np.ndarray):
-        img = Image.fromarray(img)
 
-    if isinstance(heatmap, np.ndarray):
-        colorize = plt.get_cmap(cmap)
-        # Normalize
-        heatmap = heatmap - np.min(heatmap)
-        heatmap = heatmap / np.max(heatmap)
-        heatmap = colorize(heatmap, bytes=True)
-        heatmap = Image.fromarray(heatmap[:, :, :3], mode='RGB')
-
-    # Resize the heatmap to cover whole img
-    heatmap = heatmap.resize((img.size[0], img.size[1]), resample=Image.CUBIC)
-    # Display final overlayed output
-    result = Image.blend(img, heatmap, alpha)
-    return result
-
-
-def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name, USE_GPU=False, CLASS_CONST=False):
+def CAM(input_cubemap, input_equi, model, feature_layer_name,
+        weight_layer_name, use_gpu=True, class_const=False, num_class=1000):
     """Compute Class Activation Map (CAM) of input_img
 
     Args:
@@ -43,7 +30,7 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
         The return image (PIL.Image.Image). With input_equi blended with CAM.
 
     """
-    if(CLASS_CONST):
+    if(class_const):
         aaa = np.load('./imagenet_labeldict.npz')
         class_objectness = aaa['arr_0'].item()
     img = torch.Tensor(input_cubemap)
@@ -53,14 +40,14 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
     # hook the feature extractor
     feature_maps = []
     def hook(module, input, output):
-        if USE_GPU:
+        if use_gpu:
             feature_maps.append(output.cpu().data.numpy())
         else:
             feature_maps.append(output.data.numpy())
     handle = model._modules.get(feature_layer_name).register_forward_hook(hook)
-    
+
     params = model.state_dict()[weight_layer_name]
-    if USE_GPU:
+    if use_gpu:
         weight_softmax = np.squeeze(params.cpu().numpy())
     else:
         weight_softmax = np.squeeze(params.numpy())
@@ -70,10 +57,10 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
     # from BZ x H x W x C to BZ x C x H x W
     img = img.permute(0, 3, 1, 2).contiguous()
 
-    if USE_GPU:
+    if use_gpu:
         img = Variable(img).cuda(async=True)
     else:
-        img = Variable(img)     
+        img = Variable(img)
 
     # forward
     tStart = time.time()
@@ -88,13 +75,13 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name, weight_layer_name,
     features = cubic_feature.reshape(bz, nc, h*w)
 
     cams = []
-    
+
     cube_score = np.array([])
     for idx in range(features.shape[0]):
         if cube_score.shape[0] ==0:
             cube_score = np.expand_dims(weight_softmax.dot(features[idx]),0)
         else:
             cube_score = np.concatenate((cube_score, np.expand_dims(weight_softmax.dot(features[idx]),0)),axis=0)
-    cube_score = cube_score.reshape(cube_score.shape[0],1000,h,w)
+    cube_score = cube_score.reshape(cube_score.shape[0],num_class,h,w)
     handle.remove()
     return cube_score, cubic_feature, weight_softmax

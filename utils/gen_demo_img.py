@@ -2,15 +2,14 @@ import os
 import numpy as np
 import argparse
 from PIL import Image
-from utils.Equi2Cube import Equi2Cube
+from utils.equi_to_cube import Equi2Cube
 
-# output demo generator
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dir', type=str, default=None, help='Test video path.')
     parser.add_argument('--out', type=str, default='./Saliency_Visualization', help='Test video path.')
     args, unparsed = parser.parse_known_args()
-    
+
     def get_vid_list(in_dir):
         out_list = []
         for item in os.listdir(in_dir):
@@ -18,7 +17,7 @@ def main():
         return out_list
 
     out_list = get_vid_list(args.dir)
-    
+
     if not os.path.exists(args.out):
         os.makedirs(args.out)
     output_path = os.path.join(args.out,args.dir.split('/')[-1])
@@ -27,7 +26,6 @@ def main():
 
     TEST_ONLY = True
     if TEST_ONLY:
-        # open the list fo testing set 
         fff = open('./test_25.txt', "r")
         ddd_list = fff.readlines()
         data_list = [x.split('\n')[0] for x in ddd_list]

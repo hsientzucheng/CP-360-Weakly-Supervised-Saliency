@@ -5,14 +5,14 @@ import math as m
 from scipy.interpolate import RegularGridInterpolator as interp2d
 from scipy.interpolate import interp1d
 from pylab import *
-from sph_utils import rotx, roty, rotz
+from utils.sph_utils import rotx, roty, rotz
 
 
 class Equi2Cube:
     def __init__(self, output_width, in_image, vfov=90):
-         
+
         self.out = {}
-        assert in_image.shape[0]*2==in_image.shape[1]  
+        assert in_image.shape[0]*2==in_image.shape[1]
         self.cube_out = np.array([])
         views = [[180,0,0], # Back
              [0,-90,0],     # Bottom
@@ -31,19 +31,19 @@ class Equi2Cube:
         input_width = in_image.shape[1]
         input_height = in_image.shape[0]
 
-        self.in_image = in_image      
+        self.in_image = in_image
         self.views = views
         self.output_width = output_width
         self.output_height = output_height
         self.input_width = input_width
         self.input_height = input_height
- 
+
         topLeft = np.array([-m.tan(vfov/2)*(output_width/output_height), -m.tan(vfov/2), 1])
 
         # Scaling factor for grabbing pixel co-ordinates
         uv = np.array([-2*topLeft[0]/output_width, -2*topLeft[1]/output_height, 0])
 
-        # Equirectangular lookups 
+        # Equirectangular lookups
         res_acos = 2*input_width
         res_atan = 2*input_height
         step_acos = np.pi / res_acos
@@ -73,7 +73,7 @@ class Equi2Cube:
             x_points = moved_points[0,:]
             y_points = moved_points[1,:]
             z_points = moved_points[2,:]
-        
+
             nxz = sqrt(x_points**2 + z_points**2)
             phi = zeros(X.shape[0])
             theta = zeros(X.shape[0])
@@ -88,11 +88,11 @@ class Equi2Cube:
             theta_interp = interp1d(lookup_acos, np.arange(0,res_acos+1), 'linear')
             theta[ind] = theta_interp(-z_points[ind]/nxz[ind])*step_acos
             theta[ind & (x_points < 0)] = -theta[ind & (x_points < 0)]
-            
+
             # Find equivalent pixel co-ordinates
             inX = (theta / pi) * (input_width/2) + (input_width/2) + 1
             inY = (phi / (pi/2)) * (input_height/2) + (input_height/2) + 1
-            
+
             # Cap if out of bounds
             inX[inX < 1] = 1
             inX[inX >= input_width-1] = input_width-1 # not equl -> out of range
@@ -109,7 +109,7 @@ class Equi2Cube:
             out[idx] = np.zeros((self.output_height, self.output_width, in_image.shape[2]), in_image.dtype)
 
             out_pix = zeros((self.X.shape[0], in_image.shape[2]))
-            
+
             inX = self.inXs[idx].reshape(self.output_width, self.output_height).astype('float32')
             inY = self.inYs[idx].reshape(self.output_width, self.output_height).astype('float32')
             for c in range(in_image.shape[2]):

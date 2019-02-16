@@ -2,11 +2,13 @@ import torch.nn as nn
 import math
 import numpy as np
 import torch
-import os, sys
-sys.path.append('..')
-from utils.CubePad import CubePadding
 import matplotlib.pyplot as plt
 import torch.utils.model_zoo as model_zoo
+import os, sys
+#import ruamel.yaml as yaml
+sys.path.append('..')
+
+from model.cube_pad import CubePad
 from torch.autograd import Variable
 from torch.nn.parameter import Parameter
 
@@ -21,8 +23,6 @@ model_urls = {
     'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
-
-CP = True
 
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
@@ -64,12 +64,12 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, cp=True):
         super(Bottleneck, self).__init__()
-        if CP:
-            self.pad = CubePadding()
+        if cp:
+            self.pad = CubePad(1)
         else:
-            self.pad = ZeroPad()
+            self.pad = ZeroPad(1)
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
@@ -88,7 +88,7 @@ class Bottleneck(nn.Module):
         out = self.bn1(out)
         out = self.relu(out)
 
-        out = self.pad(out,1)
+        out = self.pad(out)
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
@@ -107,25 +107,30 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000):
+    def __init__(self, block, layers, num_classes=1000, cp=True):
         self.inplanes = 64
         super(ResNet, self).__init__()
-        if CP:
-            self.cp = CubePadding()
+        self.cp = cp
+        if cp:
+            self.pad3 = CubePad(3)
+            self.pad1 = CubePad(1)
         else:
-            self.pad3 = ZeroPad(pad=3)
-            self.pad1 = ZeroPad(pad=1)
+            self.pad3 = ZeroPad(3)
+            self.pad1 = ZeroPad(1)
 
+        # Padding original value = 3
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=0,
-                               bias=False) # padding original value = 3
+                               bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0) # padding original value = 1
+        # Padding original value = 1
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=0)
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
-        self.avgpool = nn.AvgPool2d(7) #512: 16, #224: 7 #800:25
+        # Ref of avgpool size 512->16; 224->7
+        self.avgpool = nn.AvgPool2d(7)
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
@@ -146,20 +151,20 @@ class ResNet(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers.append(block(self.inplanes, planes, stride, downsample, cp=self.cp))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+            layers.append(block(self.inplanes, planes, cp=self.cp))
 
         return nn.Sequential(*layers)
 
     def forward(self, x):
 
-        x = self.cp(x,3)
+        x = self.pad3(x)
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        x = self.cp(x,1)
+        x = self.pad1(x)
         x = self.maxpool(x)
 
         x = self.layer1(x)

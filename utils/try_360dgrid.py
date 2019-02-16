@@ -103,7 +103,7 @@ def set_region_mask(t, p, targ_t, targ_p, l_width, angle):
         o_region_mask=(t<r_most)&(t>l_most)&(p<(targ_p+angle+l_width))&(p>(targ_p-angle-l_width))
     else:
         o_region_mask=((t<r_most)|(t>l_most))&(p<(targ_p+angle+l_width))&(p>(targ_p-angle-l_width))
-    
+
     if r_in>l_in:
         i_region_mask=(t<r_in)&(t>l_in)&(p<(targ_p+angle-l_width))&(p>(targ_p-angle+l_width))
     else:
@@ -116,8 +116,6 @@ def solid_region_mask(t, p, targ_t, targ_p, l_width, angle):
     print("target: {0},{1} angle={2}".format(targ_t,targ_p,angle*180/np.pi))
     r_most = over_pi((targ_t+angle+l_width))
     l_most = over_pi((targ_t-angle-l_width))
-    #r_in = over_pi((targ_t+angle-l_width)) 
-    #l_in = over_pi((targ_t-angle+l_width))
 
     if r_most>l_most:
         o_region_mask=(t<r_most)&(t>l_most)&(p<(targ_p+angle+l_width))&(p>(targ_p-angle-l_width))
@@ -130,7 +128,6 @@ def solid_region_mask(t, p, targ_t, targ_p, l_width, angle):
 
 
 def myplot(in_name,newsize):
-
     VIS_MASK=0
     WRITE_FIG=1
     BOX=1
@@ -154,9 +151,7 @@ def myplot(in_name,newsize):
     raw_im = cv2.imread(in_name)
 
     _im_h, _im_w = raw_im.shape[:2]
-    #_resize_im = cv2.resize(raw_im,(int(_im_w*scale), int(_im_h*scale))) ##
     _resize_im = cv2.resize(raw_im,newsize) ##
-    #resize_im = cv2.normalize(resize_im, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     norm_resize_im = cv2.normalize(_resize_im, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
     bb,gg,rr = cv2.split(norm_resize_im)       # get b,g,r
     resize_im = cv2.merge([rr,gg,bb]) 
@@ -174,7 +169,6 @@ def myplot(in_name,newsize):
     x,y,z = to_3dsphere(theta,phi,R)
     cube_mesh = to_3dcube(theta,phi,1)
 
-    #region_mask = set_region_mask(theta,phi,targ_th/180.0*np.pi,targ_ph/180.0*np.pi,0.05,vang_x/180.0*np.pi)
     region_mask = solid_region_mask(theta,phi,targ_th/180.0*np.pi,targ_ph/180.0*np.pi,0.05,vang_x/180.0*np.pi)
     if VIS_MASK:
         vis_mask = norm_resize_im.copy()*255.
@@ -192,7 +186,7 @@ def myplot(in_name,newsize):
     ax_sp.set_zlabel('Z axis')
     ax_sp.view_init(view_th,view_ph)
     ax_sp.plot_wireframe(x,y,z,color='b',rstride=10, cstride=10)
-    #ax_sp.plot_surface(x,y,z, facecolors=resize_im, shade=False)    
+    #ax_sp.plot_surface(x,y,z, facecolors=resize_im, shade=False)
     if(BOX):
         ax_sp.hold(True)
         x[region_mask==False]=np.nan
@@ -216,7 +210,6 @@ def myplot(in_name,newsize):
         cube_mesh[region_mask==False,:]=np.nan
         ax_sp.plot_wireframe(cube_mesh[:,:,0], cube_mesh[:,:,1], cube_mesh[:,:,2],color='r',rstride=6, cstride=6)
         #ax_sp.plot_surface(cube_mesh[:,:,0], cube_mesh[:,:,1], cube_mesh[:,:,2], color='r', antialiased=False, linewidth=0, shade=False)
-    
     if WRITE_FIG:
         plt.savefig(in_name.split('.')[0]+'_cs'+str(view_th)+'_'+str(view_ph)+'.jpg')
     #plt.show()
@@ -266,11 +259,10 @@ def main():
     items = ['224','193']
     # plot cube map directly 
     #cubeplot(source_path+'ski_test_cube/cube_',view_th,view_ph)
-    
     for item in items:
         cubeplot(source_path+'zero_pad/filter_'+item+'_',view_th,view_ph)
         cubeplot(source_path+'cube_pad/filter_'+item+'_',view_th,view_ph)
-    # plot cube map directly ^ ^ ^ ^
+    # plot cube map directly 
     #myplot('/Users/Jim/Desktop/ski_test.jpg',main_size)
     for item in items:
         myplot(source_path+'filter_'+item+'_1.jpg',sub_size)

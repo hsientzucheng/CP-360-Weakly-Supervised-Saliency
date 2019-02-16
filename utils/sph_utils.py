@@ -180,7 +180,7 @@ def naive_cube2equi_layer(input_data, gridf, face_map, no_interp):
 
 
     else: # with interpolation
-        print "interpolation!!"
+        print("interpolation!!")
         fl_oc0 = np.floor(out_coord)
         fl_oc1 = fl_oc0+1
         max_amount = depth*in_width*in_width-1

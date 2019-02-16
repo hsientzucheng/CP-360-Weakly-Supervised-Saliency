@@ -1,0 +1,22 @@
+	data_vid_path : /media/HDD3/jimcheng/dataset/360_Discovery_Rot/
+	label_path : /media/HDD3/jimcheng/dataset/output25
+	output_path : /media/HDD3/jimcheng/CP-360-Weakly-Supervised-Saliency/output
+	checkpoint_path : /media/HDD3/jimcheng/CP-360-Weakly-Supervised-Saliency/checkpoint
+	cube_pad : True
+	test_mode : True
+	train_mode : False
+	use_gpu : True
+	opt_flow : False
+	equi_h : 1920
+	equi_w : 960
+	cube_dim : 224
+	hidden_size : 1000
+	input_size : 1000
+	seq_len : 5
+Extracting video va1AmV24VSs_2[1/25]
+> /media/HDD3/jimcheng/CP-360-Weakly-Supervised-Saliency/temporal_model/test_temporal.py(172)main()
+-> auc, cc, sim, aucb = test(model, vid_name, cam_dict[vid_name],
+(Pdb) --KeyboardInterrupt--
+(Pdb) --KeyboardInterrupt--
+(Pdb) --KeyboardInterrupt--
+(Pdb) 

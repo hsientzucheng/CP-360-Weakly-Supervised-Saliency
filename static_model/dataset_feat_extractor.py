@@ -1,130 +1,135 @@
 #from __future__ import print_function
 import os
 import sys
-
-sys.path.append('..')
 import datetime
 import argparse
 import math
 import time
 import cv2
-import skvideo.io
 import numpy as np
 import matplotlib.pyplot as plt
 import tqdm
-from CAM1000 import CAM, overlay
-from OPTFL import calcOpticalFlow
+import collections
+import ruamel_yaml as yaml
+
+from class_activation_model import CAM, overlay
+from utils.optical_flow import calcOpticalFlow
 from PIL import Image
 from scipy.ndimage.filters import gaussian_filter
-from utils.Equi2Cube import Equi2Cube
-from utils.Cube2Equi import Cube2Equi
-from resnet_cubic import resnet50
-
-
-USE_GPU = True
-
-
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
-
-def im_norm(in_img, mean, std):
-    out_img = in_img
-    out_img[:, :, 0] = (in_img[:, :, 0] - mean[0]) / std[0]
-    out_img[:, :, 1] = (in_img[:, :, 1] - mean[1]) / std[1]
-    out_img[:, :, 2] = (in_img[:, :, 2] - mean[2]) / std[2]
-    return out_img
-
-def get_vid_list(in_dir):
-    out_list = []
-    for item in os.listdir(in_dir):
-        out_list.append(item)
-
-    return out_list
+from utils.equi_to_cube import Equi2Cube
+from utils.cube_to_equi import Cube2Equi
+from utils.utils import im_norm
+from model.resnet_cubic import resnet50
+sys.path.append('..')
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dir', type=str, default=None, help='The path of test video', required=True)
-    parser.add_argument('--out', type=str, default='./FINAL_INTERCUBE_224', help='Test video path.')
+    parser.add_argument('--out', type=str, default='static',
+                        help='The path of output dir')
     parser.add_argument('--mode', type=str, default='resnet50', help='model')
+    parser.add_argument('--output_img', action='store_true',
+                                    help='output images or not')
     args, unparsed = parser.parse_known_args()
 
-    TEST_ONLY = True
-    MODE = args.mode
-    if 'resnet50' in MODE:
+    # Configurations
+    with open('../config.yaml') as f:
+        config = yaml.safe_load(f)
+    for key in config.keys():
+        print("\t{} : {}".format(key, config[key]))
+    cfg = collections.namedtuple('GenericDict', config.keys())(**config)
+    mode = args.mode
+    if 'resnet50' in mode:
         model = resnet50(pretrained=True)
-    if 'vgg16' in MODE:
-        model = vgg16_bn(pretrained=True)
-    
-    args.out = args.out + '_' + MODE
 
-    if USE_GPU:
+    # Currently support ResNet-50 only
+    # if 'vgg16' in mode:
+    #     model = vgg16_bn(pretrained=True)
+
+    out_path = os.path.join(cfg.output_path, args.out + '_' + mode)
+
+    if cfg.use_gpu:
         model = model.cuda()
 
-    out_list = get_vid_list(args.dir)
+    def get_vid_list(in_dir):
+        out_list = []
+        for item in os.listdir(in_dir):
+            out_list.append(item)
+        return out_list
 
-    if not os.path.exists(args.out):
-        os.makedirs(args.out)
+    # Input video list
+    vid_path = os.path.join(cfg.data_vid_path, 'test')
+    out_list = get_vid_list(vid_path)
+
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
     vid_num = 0
 
-    if TEST_ONLY:
+    # Testing set only
+    if cfg.test_mode:
         in_file = open('../utils/test_25.txt', "r")
         ddd_list = in_file.readlines()
         data_list = [x.split('\n')[0]+'.mp4' for x in ddd_list]
 
     for vid_n in out_list:
-        
-        if TEST_ONLY:
+        if cfg.test_mode:
             if vid_n not in data_list:
                 continue
-        
+
+        # Process an input video with cv2
         print("Now process {}!".format(vid_n))
         tStart = time.time()
         vid_num+=1
-        vid_name = os.path.join(args.dir, vid_n)
-        vid_out_dir = os.path.join(args.out, vid_n.split('.mp4')[0])
-        cap = skvideo.io.vreader(vid_name)
+        vid_name = os.path.join(vid_path, vid_n)
+        vid_out_dir = os.path.join(out_path, vid_n.split('.mp4')[0])
+        cap = cv2.VideoCapture(vid_name)
         local_out_path_feat = os.path.join(vid_out_dir, 'cube_feat')
         local_out_path = os.path.join(vid_out_dir, 'img')
 
-
         if not os.path.exists(vid_out_dir):
             os.makedirs(vid_out_dir)
-        else:
-            print("{} exists.".format(local_out_path))
-            continue
-            if raw_input("Sure to overwrite {}? [Y/N]".format(local_out_path)) == 'N':
-                continue
- 
+        #else:
+        #    print("{} exists.".format(local_out_path))
+        #    continue
+        #    if raw_input("Sure to overwrite {}? [Y/N]".format(local_out_path)) == 'N':
+        #        continue
         if not os.path.exists(local_out_path):
             os.makedirs(local_out_path)
         if not os.path.exists(local_out_path_feat):
             os.makedirs(local_out_path_feat)
 
         cnt=0
-        FIRST_FRAME=True
-        while(True):
+        first_frame_flag = True
+        success = True
+
+        # Iterate to process each frame
+        while(success):
             try:
-                frame = cap.next()
+                success, frame = cap.read()
             except:
                 break
-            if FIRST_FRAME: # frame cnt & frame cnt+1
+
+            # For frame cnt & frame cnt+1
+            if first_frame_flag:
                 equi_img = Image.fromarray(frame)
                 equi_img = equi_img.convert('RGB')
-                equi_img = equi_img.resize((1920, 960), resample=Image.LANCZOS)
+                equi_img = equi_img.resize((cfg.equi_h, cfg.equi_w), resample=Image.LANCZOS)
                 input_img = np.array(equi_img) / 255.0
-                e2c = Equi2Cube(224, input_img)
+                e2c = Equi2Cube(cfg.cube_dim, input_img)
                 cur_frame = frame
-                C2E_INIT = False
-                FIRST_FRAME=False
+                c2e_init_flag = False
+                first_frame_flag=False
                 continue
+
             cnt+=1
             equi_img = Image.fromarray(cur_frame)
             equi_img = equi_img.convert('RGB')
-            equi_img = equi_img.resize((1920, 960), resample=Image.LANCZOS)
+            equi_img = equi_img.resize((cfg.equi_h, cfg.equi_w), resample=Image.LANCZOS)
             input_img = np.array(equi_img) / 255.0
-            
-            #################### equi to cube #################### 
+
+            # Equirectangular to cube
             output_cubeset = e2c.to_cube(input_img)
+
+            # Process batch
             init_batch = np.array([])
             for idx in range(6):
                 cube_img = im_norm(output_cubeset[idx], [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -133,25 +138,34 @@ def main():
                 else:
                     init_batch = np.concatenate((init_batch, np.expand_dims(cube_img, axis=0)), axis=0)
             init_batch = init_batch.astype(np.float32)
-            ######################################################
-            
-            if MODE=='resnet50':
-                cube_1000scores, cube_feat, cube_sm = CAM(init_batch, equi_img, model, 'layer4', 'fc.weight', USE_GPU=USE_GPU)
-            if MODE=='vgg16':
-                cube_1000scores, cube_feat, cube_sm = CAM(init_batch, equi_img, model, 'camconv', 'classifier.weight', USE_GPU=USE_GPU)
-            if not C2E_INIT:
+
+            # Class activation
+            if mode=='resnet50':
+                cube_1000scores, cube_feat, cube_sm = CAM(init_batch, equi_img, model,
+                                                          'layer4', 'fc.weight', use_gpu=cfg.use_gpu)
+
+            # Currently support ResNet-50 only
+            # if mode=='vgg16':
+            #     cube_1000scores, cube_feat, cube_sm = CAM(init_batch, equi_img, model, 
+            #                                               'camconv', 'classifier.weight')
+            if not c2e_init_flag:
                 c2e = Cube2Equi(cube_1000scores.shape[2])
-                C2E_INIT = True
-            zp_equi = c2e.to_equi_cv2(cube_1000scores)
-            zp_sal = np.max(zp_equi, 0)
-            zp_sal = zp_sal[:, :]**2
-            heatmap_img = overlay(equi_img, zp_sal)
-            #motion_sal, flow = calcOpticalFlow(cur_frame, frame)
-            heatmap_img.save(os.path.join(vid_out_dir, '{0:06}.jpg'.format(cnt)))
-            np.save(os.path.join(local_out_path_feat, '{0:06}.npy'.format(cnt)), cube_1000scores)
+                c2e_init_flag = True
+
+            # Generate hearmap
+            _equi = c2e.to_equi_cv2(cube_1000scores)
+            _sal = np.max(_equi, 0)
+            _sal = _sal[:, :]**2
+            heatmap_img = overlay(equi_img, _sal)
+            if cfg.opt_flow:
+                motion_sal, flow = calcOpticalFlow(cur_frame, frame)
+
             # Output equi image
-            #equi_img.save(os.path.join(local_out_path,'{0:06}.jpg'.format(cnt)))
-             
+            if args.output_img:
+                heatmap_img.save(os.path.join(vid_out_dir, '{0:06}.jpg'.format(cnt)))
+                equi_img.save(os.path.join(local_out_path,'{0:06}.jpg'.format(cnt)))
+            #np.save(os.path.join(local_out_path_feat, '{0:06}.npy'.format(cnt)), cube_1000scores)
+
             cur_frame = frame
 
         tEnd = time.time()

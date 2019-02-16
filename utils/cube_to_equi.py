@@ -4,8 +4,8 @@ import math as m
 import torch
 from torch import nn
 from torch.autograd import Variable
-from sph_utils import xy2angle, pruned_inf, to_3dsphere, get_face
-from sph_utils import face_to_cube_coord, norm_to_cube
+from utils.sph_utils import xy2angle, pruned_inf, to_3dsphere, get_face
+from utils.sph_utils import face_to_cube_coord, norm_to_cube
 
 class Cube2Equi:
     def __init__(self, input_w):
@@ -68,21 +68,20 @@ class Cube2Equi:
         face_map: 2w * 4w
         output: 1 * 2w * 4w * c
         '''
-        gridf = self.out_coord 
-        face_map = self.face_map 
+        gridf = self.out_coord
+        face_map = self.face_map
         out_w = gridf.shape[1]
         out_h = gridf.shape[0]
 
-        in_width=out_w/4   
+        in_width=out_w/4
         depth = input_data.shape[1]
 
         gridf = gridf.astype(np.float32)
         out_arr = np.zeros((out_h, out_w, depth),dtype='float32')
-        
         input_data = np.transpose(input_data, (0, 2, 3, 1)) 
 
         for f_idx in range(0,6):
-            for dept in range(1000/4):
+            for dept in range(int(1000/4)):
                 out_arr[face_map==f_idx, 4*dept:4*(dept+1)] = cv2.remap(input_data[f_idx,:,:,4*dept:4*(dept+1)], gridf[:,:,0], gridf[:,:,1],cv2.INTER_CUBIC)[face_map==f_idx]
         return np.transpose(out_arr, (2,0,1)) 
 
