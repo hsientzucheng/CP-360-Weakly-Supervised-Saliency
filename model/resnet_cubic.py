@@ -5,7 +5,6 @@ import torch
 import matplotlib.pyplot as plt
 import torch.utils.model_zoo as model_zoo
 import os, sys
-#import ruamel.yaml as yaml
 sys.path.append('..')
 
 from model.cube_pad import CubePad

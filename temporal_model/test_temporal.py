@@ -1,4 +1,5 @@
 import os, sys
+sys.path.append('..')
 import numpy as np
 import argparse
 import torch
@@ -13,12 +14,12 @@ from torch.autograd import Variable
 from utils.cube_to_equi import Cube2Equi
 from model.clstm import ConvLSTMCell
 from utils.eval_saliency import AUC_Borji, AUC_Judd, CorrCoeff, similarity
-sys.path.append('..')
+
 
 def test(model, vid_name, seq, indir, output_dir, gt_dir, num_subseq,
         c2e, save_img=False, save_result=True):
     """
-        Run testing of temporal model
+        Test temporal model
         Args:
             model: clstm model
             vid_name: input video name
@@ -130,7 +131,7 @@ def main():
     cfg = collections.namedtuple('GenericDict', config.keys())(**config)
 
     # Obtain all the video names in test set
-    vid_names = open('../utils/test_25.txt', 'r').read().splitlines()
+    vid_names = open('../data/test_25.txt', 'r').read().splitlines()
 
     # Construct the cam frame list for each video
     cam_dict = {}

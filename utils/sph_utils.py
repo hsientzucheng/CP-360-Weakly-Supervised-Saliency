@@ -11,7 +11,6 @@ import torch.nn as nn
 from torch.autograd import Variable
 from scipy.interpolate import RegularGridInterpolator as interp2d
 from itertools import product, combinations
-#from mpl_toolkits.mplot3d import Axes3D
 
 FACE_B = 0
 FACE_D = 1
@@ -95,7 +94,7 @@ def get_face(x, y, z, face_map):
     face_map[(z>=0) & z_faces] = FACE_R
     face_map[(z<=0) & z_faces] = FACE_L
 
-    #write cubic_equi image
+    # Write cubic_equi image
     '''
     face_show = face_map/6.*255 
     face_show = cv2.applyColorMap(face_show.astype(uint8), cv2.COLORMAP_RAINBOW)
@@ -134,7 +133,7 @@ def face_to_cube_coord(face_gr, x, y, z):
     direct_coord[face_gr==FACE_L,2]=z[face_gr==FACE_L]
 
 
-    # convert to top-left origin on faces coordinate
+    # Convert to top-left origin on faces coordinate
     x_oncube = (direct_coord[:,:,0]/np.abs(direct_coord[:,:,2])+1)/2
     y_oncube = (-direct_coord[:,:,1]/np.abs(direct_coord[:,:,2])+1)/2
 
@@ -165,7 +164,7 @@ def naive_cube2equi_layer(input_data, gridf, face_map, no_interp):
     out_coord=gridf
     out_arr = np.zeros((out_h,out_w,depth),dtype='float32')
     if no_interp:
-        out_coord_round = np.rint(gridf).astype(int) #round to nearest coord -> no interpolation
+        out_coord_round = np.rint(gridf).astype(int) # Round to nearest coord -> no interpolation
 
         cube2equi_coord = out_coord_round[:,:,1]*depth*in_width + out_coord_round[:,:,0]*depth
         cube2equi_coord = np.tile(cube2equi_coord[..., None],[1,1,depth])
@@ -174,12 +173,10 @@ def naive_cube2equi_layer(input_data, gridf, face_map, no_interp):
         cube2equi_coord = np.add(cube2equi_coord, c_step)
 
         for f_idx in range(0,6):
-            #if f_idx!=4:
-            #    continue
             out_arr[face_map==f_idx] = np.take(input_data[f_idx].flatten(),cube2equi_coord[face_map==f_idx])
 
 
-    else: # with interpolation
+    else: # With interpolation
         print("interpolation!!")
         fl_oc0 = np.floor(out_coord)
         fl_oc1 = fl_oc0+1
@@ -223,8 +220,6 @@ def naive_cube2equi_layer(input_data, gridf, face_map, no_interp):
         Id = np.zeros((out_h,out_w,depth),dtype='float32')
 
         for f_idx in range(0,6):
-            #if f_idx!=4:
-            #    continue
             Ia[face_map==f_idx] = np.take(input_data[f_idx].flatten(),c2e_a[face_map==f_idx])
             Ib[face_map==f_idx] = np.take(input_data[f_idx].flatten(),c2e_b[face_map==f_idx])
             Ic[face_map==f_idx] = np.take(input_data[f_idx].flatten(),c2e_c[face_map==f_idx])

@@ -32,3 +32,11 @@ def im_norm(in_img, mean, std):
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
+
+
+def cam_visual(input_equi, cam):
+    cam = cam - np.min(cam)
+    cam = cam / np.max(cam)
+    cam_img = np.uint8(255 * cam)
+    result = overlay(input_equi, cam_img)
+    return result

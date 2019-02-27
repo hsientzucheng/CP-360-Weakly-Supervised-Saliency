@@ -1,41 +1,42 @@
 # Paths (set to your paths)
-data_vid_path: /media/HDD3/jimcheng/dataset/360_Discovery/
+#data_vid_path: /media/HDD3/jimcheng/dataset/360_Discovery/
+data_vid_path: /media/HDD3/jimcheng/dataset/360_Discovery_Rot/
 label_path: /media/HDD3/jimcheng/dataset/output25
 output_path: /media/HDD3/jimcheng/CP-360-Weakly-Supervised-Saliency/output
 checkpoint_path: /media/HDD3/jimcheng/CP-360-Weakly-Supervised-Saliency/checkpoint
 
 # General
-cube_pad: True
 test_mode: True
 train_mode: False
+cube_pad: True
 use_gpu: True
-opt_flow: False
+opt_flow: True
 
 # Projection
 equi_h: 1920
 equi_w: 960
 cube_dim: 224
+flow_h: 480
 
 # Conv LSTM
 hidden_size: 1000
 input_size: 1000
-seq_len: 5
 
 # Training
 # iter: 10000
-# epochs: 10
-# save_freq: 1000
-# summary_freq: 50
-# learning_rate: 0.00001
-#
+epochs: 5
+save_freq: 1000  # Saving checkpoint
+summary_freq: 10 # Print losses
+lr: 0.000001     # Learning rate
+
 # Dataloader configuration
 # size_limit: 25000
-# batch_size: 2
-# seq_len: 5       
-# processes: 10
-#
-# Losses
-# w1: 0.1
-# w2: 0.6
-# w3: 0.002
+batch_size: 1
+seq_len: 5       
+processes: 4
 
+# Losses
+l_s: 0.7   # Weitht of smooth loss
+l_t: 1.0   # Weight of temporal loss
+l_m: 0.01 # Weight of masking loss
+mm_th: 0.15 # Motion masking threshold

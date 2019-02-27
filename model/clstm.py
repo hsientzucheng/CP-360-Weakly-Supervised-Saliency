@@ -3,7 +3,6 @@ import torch
 import math
 import matplotlib.pyplot as plt
 import torch.nn.functional as f
-#import ruamel.yaml as yaml
 from torch.nn.parameter import Parameter
 from torch import nn
 sys.path.append('..')
@@ -12,8 +11,8 @@ from torch.autograd import Variable
 
 # Define some constants
 KERNEL_SIZE = 3
-#PADDING = KERNEL_SIZE // 2
 PADDING = 0
+# PADDING = KERNEL_SIZE // 2
 
 class ConvLSTMCell(nn.Module):
     """
@@ -27,7 +26,7 @@ class ConvLSTMCell(nn.Module):
         self.Conv2 = nn.Conv2d(4 * hidden_size, 4 * hidden_size, KERNEL_SIZE, padding=PADDING)
         self.Relu = nn.ReLU(inplace=True)
         self.Gates = nn.Conv2d(4 * hidden_size, 4 * hidden_size, KERNEL_SIZE, padding=PADDING)
-        self.LSoftMax = nn.LogSoftmax()
+        self.LSoftMax = nn.LogSoftmax(dim=1)
         self._initialize_weights()
         if cp:
             self.pad = CubePad(1)
@@ -35,10 +34,10 @@ class ConvLSTMCell(nn.Module):
             self.pad = ZeroPad(1)
 
     def forward(self, input_, prev_state=None):
-        # get batch and spatial sizes
-        batch_size = input_.data.size()[0]
-        spatial_size = input_.data.size()[2:]
-        # generate empty prev_state, if None is provided
+        # Get batch and spatial sizes
+        batch_size = input_.shape[0]
+        spatial_size = input_.shape[2:]
+        # Generate empty prev_state, if None is provided
         if prev_state is None:
             state_size = [batch_size, self.hidden_size] + list(spatial_size)
             prev_state = (
@@ -63,16 +62,16 @@ class ConvLSTMCell(nn.Module):
         in_gate, remember_gate, out_gate, cell_gate = gates.chunk(4, 1)
 
         # Apply sigmoid non linearity
-        in_gate = f.sigmoid(in_gate)
-        remember_gate = f.sigmoid(remember_gate)
-        out_gate = f.sigmoid(out_gate)
+        in_gate = torch.sigmoid(in_gate)
+        remember_gate = torch.sigmoid(remember_gate)
+        out_gate = torch.sigmoid(out_gate)
 
         # Apply tanh non linearity
-        cell_gate = f.tanh(cell_gate)
+        cell_gate = torch.tanh(cell_gate)
 
         # Compute current cell and hidden state
         cell = (remember_gate * prev_cell) + (in_gate * cell_gate)
-        hidden = out_gate * f.tanh(cell)
+        hidden = out_gate * torch.tanh(cell)
         hidden_softmax = self.LSoftMax(hidden)
         return hidden, cell
 

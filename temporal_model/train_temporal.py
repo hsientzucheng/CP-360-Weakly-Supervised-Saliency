@@ -1,107 +1,26 @@
-import os
+import os, sys
+sys.path.append('..')
 import csv
-import pdb
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-import tables
 import cv2
 import argparse
 import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
+import collections
+import ruamel_yaml as yaml
 
-from sph_utils import cube2equi, cube2equi_layer
+from utils.cube_to_equi import Cube2Equi
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
-from clstm_cubic import ConvLSTMCell
+from model.clstm import ConvLSTMCell
 from PIL import Image
+from utils.utils import cam_visual
+from data.dataset import Sal360Dataset
 
-USE_GPU = True
-
-SEQ_LEN = 5
-HIDDEN_SIZE = 1000
-INPUT_SIZE = 1000
-
-
-TEMPORAL_LOSS_LEN = 3
-BATCH_SIZE = 1
-EPOCH = 1
-MSG_DISPLAY_FREQ = 20
-SNAPSHOT_FREQ = 5000
-
-def cam_visual(input_equi, cam):
-    cam = cam - np.min(cam)
-    cam = cam / np.max(cam)
-    cam_img = np.uint8(255 * cam)
-    result = overlay(input_equi, cam_img)
-    return result
-
-class Sal360Dateset:
-    def __init__(self, video_dir, label_dir, train_test_split ,transform=None):
-        self.video_dir = video_dir
-        self.label_dir = label_dir
-        self.data_list = train_test_split
-        fff = open(train_test_split, "r")
-        ddd_list = fff.readlines()
-        self.data_list = [x.split('\n')[0] for x in ddd_list]
-
-        self.data = []
-        self.motion = []
-
-        video_categories = os.listdir(video_dir)
-        video_categories.sort()
-
-        for video_category in video_categories:
-            if video_category not in self.data_list:
-                continue
-            feat_sequences = os.listdir(self.video_dir + '/' + video_category+'/cube_feat')
-            feat_sequences.sort()
-            for seq in feat_sequences:
-
-                if ('.npy' in seq) and ('feat' in seq):
-                    self.data.append(self.video_dir + '/' + video_category + '/cube_feat/' + seq)
-                #if ('.npy' in seq) and ('motion' in seq):
-                #    self.motion.append(self.video_dir + '/' + video_category + '/' + seq)
-            motion_sequences = os.listdir(self.label_dir + '/' + video_category)
-            motion_sequences.sort()
-            for seq in motion_sequences:
-
-                if ('.npy' in seq) and ('feat' in seq):
-                    self.motion.append(self.label_dir + '/' + video_category + '/' + seq)
-
-        self.transform = transform
-
-    def __getitem__(self, index):
-        seq = []
-        motion = []
-        category = self.data[index].split('/')[-3]
-        filename = self.data[index].split('/')[-1]
-
-        for offset in range(SEQ_LEN):
-            category, _, filename = self.data[index].split('/')[-3:]
-            if os.path.exists(self.data[index][:-15]+'feat_{:06}{}'.format(int(filename[-10:-4]) + offset, filename[-4:])):
-                filename = self.data[index][:-15]+'feat_{:06}{}'.format(int(filename[-10:-4]) + offset, filename[-4:])
-                cam = np.load(filename)
-                seq.append(torch.Tensor(cam))
-            else:
-                filename = self.data[index][:-15]+'feat_{:06}{}'.format(int(filename[-10:-4]), filename[-4:])
-                cam = np.load(filename)
-                seq.append(torch.Tensor(cam))
-            category, filename = self.motion[index].split('/')[-2:]
-            if os.path.exists(self.motion[index][:-15]+'feat_{:06}{}'.format(int(filename[-10:-4]) + offset, filename[-4:])):
-                filename = self.motion[index][:-15]+'feat_{:06}{}'.format(int(filename[-10:-4]) + offset, filename[-4:])
-                cam = np.load(filename)
-                motion.append(torch.Tensor(cam))
-            else:
-                filename = self.motion[index][:-15]+'feat_{:06}{}'.format(int(filename[-10:-4]), filename[-4:])
-                cam = np.load(filename)
-                motion.append(torch.Tensor(cam))
-        return seq, motion, category, filename
-
-    def __len__(self):
-        return len(self.data)
 
 def generate_meshgrid(flow):
         h = flow.size(1)
@@ -109,201 +28,243 @@ def generate_meshgrid(flow):
         y = torch.arange(0, h).unsqueeze(1).repeat(1, w) / (h - 1) * 2 - 1
         x = torch.arange(0, w).unsqueeze(0).repeat(h, 1) / (w - 1) * 2 - 1
         mesh_grid = Variable(torch.stack([x,y], 0).unsqueeze(0).repeat(flow.size(0), 1, 1, 1).cuda(async=True))
-        return mesh_grid
+        return mesh_grid.float()
 
-def train(train_loader, model, criterion, optimizer, epoch, out_model_path, SM_WEIGHT,TEMP_WEIGHT,MASK_WEIGHT, init_iter):
+def train(train_loader, model, criterion, optimizer, epoch,
+                    out_model_path, init_iter, cfg, tmp_loss_len=3):
+    """
+        Train temporal model
+        Args:
+            train_loader: Sal360Dataset with loader
+            model: clstm model
+            criterion: loss functions
+            optimizer: optimizer for training
+            epoch: epoch number
+            out_model_path: path to save checkpoints
+            init_iter: start from previous inter (when load model)
+            cfg: training configuration (from config.yaml and argprase)
+            tmp_loss_len: calculate losses from how many frames
+        Output:
+            Save checkpoint 'CLSTM_[epoch]_[iteration].pth'
+    """
+    seq_len = cfg.seq_len
+    flow_h = cfg.flow_h
+    l_s = cfg.l_s
+    l_t = cfg.l_t
+    l_m = cfg.l_m
+    assert cfg.use_gpu
 
-    loss_saver = []
-
-    TARG_FLOW_H = 480 #480 960
     model.train()
-    avg_pool = nn.AvgPool2d(14)
     batch_time = 0.0
     running_loss = 0.0
-    for i, (seq, flow, cc, ff) in enumerate(train_loader):
-        pdb.set_trace()
-        i+=init_iter
-        if i>len(train_loader)+1:
-            break
-        t = time.time()
+    for i, (seq, flow, _, _) in enumerate(train_loader):
 
-        #======================= intra sequence normalize ==================
+        ttime = time.time()
+        i += init_iter
+
+        # Real batch size (how many cube)
+        num_input_cube = seq[0].shape[0]
+
+        if i > len(train_loader) + 1:
+            break
+
+        c2e = Cube2Equi(seq[0].size(-1))
+
+        # Intra sequence normalize
         seq_items = np.array([])
+
         for seq_item in seq:
             if seq_items.shape[0]==0:
                 seq_items = seq_item.numpy()
             else:
-                seq_items = np.concatenate((seq_items,seq_item.numpy()),0)
+                seq_items = np.concatenate((seq_items, seq_item.numpy()), 0)
         min_seq = np.min(seq_items)
-        max0min_seq = np.max(seq_items-min_seq)
-
-        #===================================================================
+        max0min_seq = np.max(seq_items - min_seq)
 
         prev_hidden_buff = []
-
-        #======================== input sequence ===========================
+        flow_buff = []
+        # Input sequence
         for idx, cube_cam in enumerate(seq):
-            cube_cam = torch.Tensor(cube_cam.numpy()-min_seq)
-            cube_cam = torch.Tensor(cube_cam.numpy()/max0min_seq)
+
+            cube_cam = torch.Tensor(cube_cam.numpy() - min_seq)
+            cube_cam = torch.Tensor(cube_cam.numpy() / max0min_seq)
+            cube_cam = cube_cam.view(cube_cam.shape[0]*cube_cam.shape[1],
+                    cube_cam.shape[2], cube_cam.shape[3], cube_cam.shape[4])
             if idx==0:
-                hidden = Variable(cube_cam[0]).cuda(async=True)
-                cell = Variable(cube_cam[0]).cuda(async=True)
+                hidden = Variable(cube_cam).cuda(async=True)
+                cell = Variable(cube_cam).cuda(async=True)
 
-            if USE_GPU:
-                cube_cam = Variable(cube_cam).cuda(async=True)
-            else:
-                cube_cam = Variable(cube_cam)
-            cube_cam = cube_cam[0]
+            var_cube_cam = Variable(cube_cam).cuda(async=True)
+
             # CLSTM forward
-            hidden, cell = model(cube_cam, [hidden, cell])
+            hidden, cell = model(var_cube_cam, [hidden, cell])
 
-            # prepare cube to equi grids
-            grid, face_map = cube2equi(cube_cam.size(2))
-            face_map = face_map.astype(int)
-            if USE_GPU:
-                grid = Variable(torch.Tensor(grid)).cuda(async=True)
-                face_map = Variable(torch.LongTensor(face_map)).cuda(async=True)
-            else:
-                grid = Variable(torch.Tensor(grid))
-                face_map = Variable(torch.LongTensor(face_map))
-            # equirectangular cam (from static)
-            hidden_equi = nn_cube2equi_layer(hidden, grid, face_map)
-            if idx>=(SEQ_LEN-TEMPORAL_LOSS_LEN-1):
-                aaaa, bbbb = torch.max(hidden_equi,1)
-                prev_hidden_buff.append(torch.unsqueeze(aaaa,0))
+            # Equirectangular cam (from static)
+            for i_b in range(num_input_cube):
+                if idx >= (cfg.seq_len - tmp_loss_len - 1):
+                    hidden_equi = c2e.to_equi_nn(hidden[6*i_b:6*(i_b+1),:])
+                    aaaa, bbbb = torch.max(hidden_equi, 1)
+                    prev_hidden_buff.append(torch.unsqueeze(aaaa, 0))
 
-        out_cam = prev_hidden_buff[-1]
+                    # For flow resizing
+                    fscale = flow_h / float(flow[idx].size(2))
+                    np_flow = fscale * np.array(cv2.resize(flow[idx].numpy()[i_b],
+                                    (flow_h*2, flow_h), interpolation=cv2.INTER_CUBIC))
+                    flow_buff.append(torch.unsqueeze(torch.Tensor(np_flow), 0))
 
-        fscale = TARG_FLOW_H/float(flow[idx].size(1))
-        npflow = fscale * np.array([cv2.resize(flow[idx].numpy()[0], (TARG_FLOW_H*2,TARG_FLOW_H), interpolation=cv2.INTER_CUBIC) for idx in range(len(flow))])
-        flow = [torch.unsqueeze(torch.Tensor(npflow[idx]),0) for idx in range(len(flow))]
+        # Out put last cam if needed
+        # out_cam = prev_hidden_buff[-1]
 
-        # ======================================= Loss calculation = ====================================================
-        mesh_grid = generate_meshgrid(flow[-1]).permute(0,2,3,1)
-        for fidx in range(TEMPORAL_LOSS_LEN):
+        # Loss calculation
+        mesh_grid = generate_meshgrid(flow_buff[-1]).permute(0, 2, 3, 1)
+        for i_b in range(num_input_cube): # Iter for batch size
+            for fidx in range(tmp_loss_len):
 
-            targ_idx = SEQ_LEN-fidx-2 # 3, 2, 1, 0
-            tmp_flow = flow[targ_idx] # flow targ_idx to targ_idx+1
+                targ_idx = i_b + fidx * num_input_cube
+                tmp_flow = flow_buff[targ_idx] # Flow -> targ_idx to (targ_idx+1)
 
-            # get flow magnitude and motion mask
-            abs_flow = torch.sqrt(tmp_flow[0,:,:,0]**2+tmp_flow[0,:,:,1]**2) 
-            motion_mask = Variable(torch.sqrt(tmp_flow[0,:,:,0]**2+tmp_flow[0,:,:,1]**2) < 0.1).cuda()
-            # calculate flow warping grid
-            curr_buff_step = targ_idx-SEQ_LEN+len(prev_hidden_buff)
-            tmp_feat = nn.functional.upsample(prev_hidden_buff[curr_buff_step], size=(tmp_flow.size(1), tmp_flow.size(2)), mode='bilinear')
-            tmp_feat_next = nn.functional.upsample(prev_hidden_buff[curr_buff_step+1], size=(tmp_flow.size(1), tmp_flow.size(2)), mode='bilinear')
-            tmp_flow[:, :, :, 0] = (tmp_flow[:, :, :, 0]) / tmp_feat.size()[3] * 2
-            tmp_flow[:, :, :, 1] = (tmp_flow[:, :, :, 1]) / tmp_feat.size()[2] * 2
-            tmp_grid = Variable(tmp_flow).cuda()+ mesh_grid
-            tmp_feat_val = tmp_feat
-            tmp_feat_val_next = tmp_feat_next
+                # Get flow magnitude and motion mask
+                abs_flow = torch.sqrt(tmp_flow[0,:,:,0]**2 + tmp_flow[0,:,:,1]**2)
+                motion_mask = Variable(torch.sqrt(tmp_flow[0, :, :, 0]**2 + tmp_flow[0, :, :, 1]**2) < cfg.mm_th).cuda()
 
-            # calculate prediction warping with optical flow grid
-            warp_prediction = nn.functional.grid_sample(tmp_feat_val, tmp_grid)
+                # Calculate flow warping grid
+                curr_buff_step = targ_idx
+                tmp_feat = nn.functional.upsample(prev_hidden_buff[curr_buff_step],
+                                size=(tmp_flow.size(1), tmp_flow.size(2)), mode='bilinear')
+                tmp_feat_next = nn.functional.upsample(prev_hidden_buff[curr_buff_step + num_input_cube],
+                                size=(tmp_flow.size(1), tmp_flow.size(2)), mode='bilinear')
+                tmp_flow[:, :, :, 0] = (tmp_flow[:, :, :, 0]) / tmp_feat.size()[3] * 2
+                tmp_flow[:, :, :, 1] = (tmp_flow[:, :, :, 1]) / tmp_feat.size()[2] * 2
+                tmp_grid = Variable(tmp_flow).cuda() + mesh_grid
+                tmp_feat_val = tmp_feat
+                tmp_feat_val_next = tmp_feat_next
 
-            warp_prediction = warp_prediction.detach()
-            tmp_feat_val = tmp_feat_val.detach()
-            tmp_feat_val_mask = tmp_feat_val_next.clone()
+                # Calculate prediction warping with optical flow grid
+                warp_prediction = nn.functional.grid_sample(tmp_feat_val, tmp_grid)
 
-            # masking out saliency prediction by motion masking
-            tmp_feat_val_mask[motion_mask]=0
-            tmp_feat_val_mask = tmp_feat_val_mask.detach()
+                warp_prediction = warp_prediction.detach()
+                tmp_feat_val = tmp_feat_val.detach()
+                tmp_feat_val_mask = tmp_feat_val_next.clone()
 
-            # loss aggregation through time steps
-            if fidx == 0:
-                loss_sm = criterion(tmp_feat_val_next, warp_prediction)
-                loss_temp = criterion(tmp_feat_val_next, tmp_feat_val)
-                loss_mask = criterion(tmp_feat_val_next, tmp_feat_val_mask)
-            else:
-                loss_sm += criterion(tmp_feat_val_next, warp_prediction)
-                loss_temp += criterion(tmp_feat_val_next, tmp_feat_val)
-                loss_mask += criterion(tmp_feat_val_next, tmp_feat_val_mask)
-        if i % MSG_DISPLAY_FREQ == (MSG_DISPLAY_FREQ-1):
-            print("smooth loss: {0:.3f}, temporal loss: {1:.3f}, motion mask loss: {2:.3f}".format(SM_WEIGHT*loss_sm.data.cpu().numpy()[0],
-                                                    TEMP_WEIGHT*loss_temp.data.cpu().numpy()[0],MASK_WEIGHT*loss_mask.data.cpu().numpy()[0]))
+                # Mask out saliency prediction by motion masking
+                tmp_feat_val_mask[:, :, motion_mask]=0
+                tmp_feat_val_mask = tmp_feat_val_mask.detach()
 
-        loss = SM_WEIGHT*loss_sm + TEMP_WEIGHT*loss_temp + MASK_WEIGHT*loss_mask
-        loss_saver.append([loss_sm.data.cpu().numpy()[0],loss_temp.data.cpu().numpy()[0],loss_mask.data.cpu().numpy()[0],loss.data.cpu().numpy()[0]])
+                # Loss aggregation through time steps
+                if targ_idx == 0:
+                    loss_sm = criterion(tmp_feat_val_next, warp_prediction)
+                    loss_temp = criterion(tmp_feat_val_next, tmp_feat_val)
+                    loss_mask = criterion(tmp_feat_val_next, tmp_feat_val_mask)
+                else:
+                    loss_sm += criterion(tmp_feat_val_next, warp_prediction)
+                    loss_temp += criterion(tmp_feat_val_next, tmp_feat_val)
+                    loss_mask += criterion(tmp_feat_val_next, tmp_feat_val_mask)
+
+        if i % cfg.summary_freq == (cfg.summary_freq - 1):
+            print("Smooth loss: {0:.3f}, Tmp loss: {1:.3f}, MMask loss: {2:.3f}".format(cfg.l_s*loss_sm.data.item(),
+                                                                                        cfg.l_t*loss_temp.data.item(),
+                                                                                        cfg.l_m*loss_mask.data.item()))
+        loss = cfg.l_s*loss_sm + cfg.l_t*loss_temp + cfg.l_m*loss_mask
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        batch_time += time.time() - ttime
+        running_loss += loss.data.item()
 
-        batch_time += time.time() - t
-        running_loss += loss.data[0]
-
-        if i % MSG_DISPLAY_FREQ == (MSG_DISPLAY_FREQ-1):
-
-            print("Epoch: [{}][{}/{}]\t Loss (avg.): {}\t Batch Time (avg.): {:.3f}".format(epoch, i+1, len(train_loader), running_loss/MSG_DISPLAY_FREQ, batch_time/MSG_DISPLAY_FREQ))
+        if i % cfg.summary_freq == (cfg.summary_freq-1):
+            print("Epoch: [{}][{}/{}]\t Loss (avg.): {:.3f}\t Batch Time (avg.):{:.3f}".format(epoch,
+                        i+1, len(train_loader),
+                        running_loss/cfg.summary_freq,
+                        batch_time/cfg.summary_freq))
             batch_time = 0.0
             running_loss = 0.0
-        if i % SNAPSHOT_FREQ == (SNAPSHOT_FREQ-1):
-            torch.save(model.state_dict(), out_model_path+'/CLSTM_{0:02}_{1:06}.pth'.format(epoch,i))
 
+        if i % cfg.save_freq == (cfg.save_freq-1):
+            print(os.path.join(out_model_path, 'CLSTM_{0:02}_{1:06}.pth'.format(epoch, i)))
+            torch.save(model.state_dict(), os.path.join(out_model_path,
+                        'CLSTM_{0:02}_{1:06}.pth'.format(epoch, i)))
+
+        # Depatch variables
         loss.detach()
         loss_sm.detach()
         loss_mask.detach()
         loss_temp.detach()
-        grid.detach()
-        face_map.detach()
         motion_mask.detach()
         tmp_grid.detach()
 
-    np.save(out_model_path+'/loss_{0:02}_{1:06}.npy'.format(epoch,i),np.array(loss_saver))
-
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--sml', type=float, default=0.1, help='smooth weight')
-    parser.add_argument('--mml', type=float, default=0.0, help='motion mask weight')
-    parser.add_argument('--tmpl', type=float, default=1.0, help='temporal weight')
-    parser.add_argument('--lr', type=float, default=1e-6, help='lr')
-    parser.add_argument('--input', type=str, help='input path e.g./home/jimcheng/Desktop/CAM_VGG_224_vgg16')
+    parser.add_argument('--sml', type=float, help='smooth weight')
+    parser.add_argument('--mml', type=float, help='motion mask weight')
+    parser.add_argument('--tmpl', type=float, help='temporal weight')
+    parser.add_argument('--lr', type=float, help='learning rate')
+    parser.add_argument('--input', type=str, help='input path')
     parser.add_argument('--motion', type=str, help='motion path')
 
     args, unparsed = parser.parse_known_args()
 
+    # Configurations
+    with open('../config.yaml') as f:
+        config = yaml.safe_load(f)
+    for key in config.keys():
+        print("\t{} : {}".format(key, config[key]))
+        cfg = collections.namedtuple('GenericDict', config.keys())(**config)
+
+    if args.sml is not None:
+        cfg.l_s = args.sml
+    if args.tmpl is not None:
+        cfg.l_t = args.tmpl
+    if args.mml is not None:
+        cfg.l_m = args.mml
+    if args.lr is not None:
+        cfg.lr = args.lr
+
     dataset_root = args.input
-    motion_root = args.motion
+    motion_root = args.input
 
-    SM_WEIGHT = args.sml
-    TEMP_WEIGHT = args.tmpl
-    MASK_WEIGHT = args.mml
-
-    out_model_path = "./"+dataset_root.split('/')[-1]+"./CLSTM_sm{0:04}t{1:04}m{2:04}".format(SM_WEIGHT,TEMP_WEIGHT,MASK_WEIGHT)
+    out_model_path = os.path.join(cfg.checkpoint_path,
+                    "CLSTM_s_{0:04}_t_{1:04}_m_{2:04}".format(cfg.l_s, cfg.l_t, cfg.l_m))
     if not os.path.exists(out_model_path):
         os.makedirs(out_model_path)
 
     feat_name = args.input.split('/')[-1]
-    train_dataset = Sal360Dateset(dataset_root, motion_root, './train_60.txt')
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-    #test_dataset = Sal360Dateset(dataset_root, motion_root,'./test.txt')
-    #test_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
+    train_dataset = Sal360Dataset(dataset_root, motion_root, '../data/train_60.txt', cfg.seq_len)
+    train_loader = DataLoader(train_dataset, batch_size=cfg.batch_size,
+                    shuffle=True, num_workers=cfg.processes)
 
-    print("=> using CLSTM")
-    model = ConvLSTMCell(INPUT_SIZE, HIDDEN_SIZE)
-    init_model_num = 0
+    # test_dataset = Sal360Dateset(dataset_root, motion_root,'../data/test_25.txt')
+    # test_loader = DataLoader(train_dataset, batch_size=cfg.batch_size,
+    #               shuffle=False, num_workers=cfg.processes)
 
-    if USE_GPU:
+    model = ConvLSTMCell(cfg.input_size, cfg.hidden_size)
+
+    if cfg.use_gpu:
         model = model.cuda()
 
     model_num = []
     init_model_num=0
     if model_num != []:
-        model.load_state_dict(torch.load(os.path.join(out_model_path,'CLSTM_{0:02}_{1:06}.pth'.format(0,max(model_num)))))
+        model.load_state_dict(torch.load(os.path.join(out_model_path,
+                        'CLSTM_{0:02}_{1:06}.pth'.format(0, max(model_num)))))
         init_model_num = max(model_num)
 
-
-    if USE_GPU:
+    if cfg.use_gpu:
         criterion = nn.MSELoss(size_average=False).cuda()
     else:
         criterion =nn.MSELoss(size_average=False)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
 
-    for epoch in range(EPOCH):
-        train(train_loader, model, criterion, optimizer, epoch, out_model_path, SM_WEIGHT,TEMP_WEIGHT,MASK_WEIGHT, init_model_num)
-        torch.save(model.state_dict(), out_model_path+'/'+feat_name+'_CLSTM_{:02}.pth'.format(epoch))
-        #model.load_pretrained_model_seq(torch.load(feat_name+'_CLSTM_00.pth'))
-        #test(test_loader, model)
+    for epoch in range(cfg.epochs):
+        train(train_loader, model, criterion, optimizer, epoch, out_model_path, init_model_num, cfg)
+        torch.save(model.state_dict(), os.path.join(out_model_path,
+                        feat_name + '_CLSTM_{:02}.pth'.format(epoch)))
+
+        # Load pretrained model if needed
+        # model.load_pretrained_model_seq(torch.load(feat_name+'_CLSTM_00.pth'))
+
+        # Current test function got no data loader (see test_temporal.py)
+        # test(test_loader, model)
 
 if __name__ == '__main__':
     main()
