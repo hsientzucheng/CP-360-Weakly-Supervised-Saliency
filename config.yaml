@@ -1,6 +1,5 @@
 # Paths (set to your paths)
-#data_vid_path: /media/HDD3/jimcheng/dataset/360_Discovery/
-data_vid_path: /media/HDD3/jimcheng/dataset/360_Discovery_Rot/
+data_vid_path: /media/HDD3/jimcheng/dataset/360_Discovery/
 label_path: /media/HDD3/jimcheng/dataset/output25
 output_path: /media/HDD3/jimcheng/CP-360-Weakly-Supervised-Saliency/output
 checkpoint_path: /media/HDD3/jimcheng/CP-360-Weakly-Supervised-Saliency/checkpoint
