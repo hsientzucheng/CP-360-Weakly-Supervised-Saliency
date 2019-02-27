@@ -28,7 +28,7 @@ The model should be put into the directory:
 
 <img src="./images/feature_map_visual.jpg" width="80%"/>
 
-The cube padding module in in cube_pad.py
+The cube padding module in cube_pad.py
 ```
 python [CP-360-Weakly-Supervised-Saliency PATH]/model/cube_pad.py
 ```
