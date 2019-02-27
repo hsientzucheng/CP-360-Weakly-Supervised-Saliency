@@ -74,7 +74,7 @@ vim [CP-360-Weakly-Supervised-Saliency PATH]/config.yaml
 - After installing requirements and setting up the configurations, the static model can be run as:
 ```
 cd static_model
-python dataset_feat_extractor.py --mode resnet50 --output_img
+python dataset_feat_extractor.py --mode resnet50 -oi -of
 ```
 
 - Having the features from the static model, run the temporal model by:
@@ -86,6 +86,28 @@ python test_temporal.py --dir ../output/static_resnet50 --model CLSTM_model_rele
 - These commands are in the script, just run:
 ```
 bash inference.sh
+```
+
+## Train
+- You might want to modify the config file first for some training args:
+```
+vim [CP-360-Weakly-Supervised-Saliency PATH]/config.yaml
+```
+
+- Extract optical flow to train the temporal model:
+```
+cd static_model
+python dataset_feat_extractor.py --mode resnet50 -om
+```
+
+- Train your model by running:
+```
+bash train.sh
+```
+
+- The model you train will be saved in (see config.yaml for these args):
+```
+vim [CP-360-Weakly-Supervised-Saliency PATH]/checkpoint/CLSTM_s_[l_s]_t_[l_t]_m_[l_m]/CLSTM_[epoch]_[iter].pth
 ```
 
 ## Results
