@@ -16,23 +16,23 @@ Tested under
     - tqdm, scipy, matplotlib, PIL, ruamel_yaml, collections
 
 ## Model
-### CubePadding
-
-<img src="./images/cubeprojection.jpg" width="50%"/>
-
-<img src="./images/feature_map_visual.jpg" width="80%"/>
-
-You can test the cube padding module by simply execute cube_pad.py
-```
-python [CP-360-Weakly-Supervised-Saliency PATH]/model/cube_pad.py
-```
-
 ### Pretrained model
 You can download our convolution LSTM model [here](https://drive.google.com/file/d/1uOI4c9ojCU0pvUHN4cdf-JYUyWqkf-gm/view?usp=sharing)
 The model should be put into the directory:
 ```
 [CP-360-Weakly-Supervised-Saliency PATH]/checkpoint/CLSTM_model_released.pth
 ```
+### CubePadding
+
+<img src="./images/cubeprojection.jpg" width="50%"/>
+
+<img src="./images/feature_map_visual.jpg" width="80%"/>
+
+The cube padding module in in cube_pad.py
+```
+python [CP-360-Weakly-Supervised-Saliency PATH]/model/cube_pad.py
+```
+
 
 ## Dataset 
 To get Wild-360 dataset, check our [project website](http://aliensunmin.github.io/project/360saliency/).
