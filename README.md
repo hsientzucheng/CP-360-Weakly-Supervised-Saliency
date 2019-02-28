@@ -116,6 +116,9 @@ In each block, consecutive frames of various methods, ground truth, and raw vide
 We highlight regions for comparison using white dash rectangles. 
 In the right panel, one example is zoom-in (red box) and two salient NFoVs (yellow boxes) are rendered. 
 
+## Notes
+- Our method to train temporal model is only suitable for stationary videos (without camera motion). For more complicated cases, you might want to compensate camera motion and apply 360 stablization.
+
 ## Citation
 ```
 @inproceedings{cheng2018cube,
