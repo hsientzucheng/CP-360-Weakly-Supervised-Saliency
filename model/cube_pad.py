@@ -50,9 +50,9 @@ class CubePadding(nn.Module):
         The surrounding volume of cube padding includes 4 concatenated plates
 
                                   //＝＝＝//|
-        4 plates (t, d, l, r):   //  t   // |
+        4 plates (t, d, l, r):   //  t  // |
                                 ||＝＝＝|| r|
-                               l||  f   || /
+                               l||  f  || /
                                 ||＝＝＝||/
                                    d
     """
