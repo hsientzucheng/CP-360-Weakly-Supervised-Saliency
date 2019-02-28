@@ -21,17 +21,18 @@ from utils.utils import im_norm
 from model.resnet_cubic import resnet50
 sys.path.append('..')
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--out', type=str, default='static',
                         help='The path of output dir')
     parser.add_argument('--mode', type=str, default='resnet50', help='model')
-    parser.add_argument('-oi','--output_img', action='store_true',
-                                    help='output images or not')
-    parser.add_argument('-of','--output_feature', action='store_true',
-                                    help='output features or not')
-    parser.add_argument('-om','--output_motion', action='store_true',
-                                    help='output optical flow or not')
+    parser.add_argument('-oi', '--output_img', action='store_true',
+                        help='output images or not')
+    parser.add_argument('-of', '--output_feature', action='store_true',
+                        help='output features or not')
+    parser.add_argument('-om', '--output_motion', action='store_true',
+                        help='output optical flow or not')
 
     args, unparsed = parser.parse_known_args()
 
@@ -91,7 +92,7 @@ def main():
         # Process an input video with cv2
         print("Now process {}!".format(vid_n))
         tStart = time.time()
-        vid_num+=1
+        vid_num += 1
         vid_name = os.path.join(vid_path, vid_n)
         vid_out_dir = os.path.join(out_path, vid_n.split('.mp4')[0])
         cap = cv2.VideoCapture(vid_name)
@@ -110,7 +111,7 @@ def main():
         if not os.path.exists(local_out_path_motion):
             os.makedirs(local_out_path_motion)
 
-        cnt=0
+        cnt = 0
         success = True
 
         # Iterate to process each frame
@@ -121,20 +122,22 @@ def main():
                 break
 
             # For frame cnt & frame cnt+1
-            if cnt==0:
+            if cnt == 0:
                 equi_img = Image.fromarray(frame)
                 equi_img = equi_img.convert('RGB')
-                equi_img = equi_img.resize((cfg.equi_h, cfg.equi_w), resample=Image.LANCZOS)
+                equi_img = equi_img.resize(
+                    (cfg.equi_h, cfg.equi_w), resample=Image.LANCZOS)
                 input_img = np.array(equi_img) / 255.0
                 e2c = Equi2Cube(cfg.cube_dim, input_img)
                 cur_frame = frame
                 c2e_init_flag = False
                 continue
 
-            cnt+=1 # Count from 1
+            cnt += 1  # Count from 1
             equi_img = Image.fromarray(cur_frame)
             equi_img = equi_img.convert('RGB')
-            equi_img = equi_img.resize((cfg.equi_h, cfg.equi_w), resample=Image.LANCZOS)
+            equi_img = equi_img.resize(
+                (cfg.equi_h, cfg.equi_w), resample=Image.LANCZOS)
             input_img = np.array(equi_img) / 255.0
 
             # Equirectangular to cube
@@ -143,17 +146,19 @@ def main():
             # Process batch
             init_batch = np.array([])
             for idx in range(6):
-                cube_img = im_norm(output_cubeset[idx], [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-                if idx==0:
+                cube_img = im_norm(output_cubeset[idx], [
+                                   0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                if idx == 0:
                     init_batch = np.expand_dims(cube_img, axis=0)
                 else:
-                    init_batch = np.concatenate((init_batch, np.expand_dims(cube_img, axis=0)), axis=0)
+                    init_batch = np.concatenate(
+                        (init_batch, np.expand_dims(cube_img, axis=0)), axis=0)
             init_batch = init_batch.astype(np.float32)
 
             # Class activation
-            if mode=='resnet50':
+            if mode == 'resnet50':
                 cube_1000scores, cube_feat, cube_sm = CAM(init_batch, equi_img, model,
-                                'layer4', 'fc.weight', use_gpu=cfg.use_gpu)
+                                                          'layer4', 'fc.weight', use_gpu=cfg.use_gpu)
 
             # Currently support ResNet-50 only
             # if mode=='vgg16':
@@ -174,16 +179,21 @@ def main():
 
             # Output equi image
             if args.output_img:
-                heatmap_img.save(os.path.join(vid_out_dir, '{0:06}.jpg'.format(cnt)))
-                equi_img.save(os.path.join(local_out_path,'{0:06}.jpg'.format(cnt)))
+                heatmap_img.save(os.path.join(
+                    vid_out_dir, '{0:06}.jpg'.format(cnt)))
+                equi_img.save(os.path.join(
+                    local_out_path, '{0:06}.jpg'.format(cnt)))
             if args.output_feature:
-                np.save(os.path.join(local_out_path_feat, '{0:06}.npy'.format(cnt)), cube_1000scores)
+                np.save(os.path.join(local_out_path_feat,
+                                     '{0:06}.npy'.format(cnt)), cube_1000scores)
             if args.output_motion:
-                np.save(os.path.join(local_out_path_motion,'{0:06}.npy'.format(cnt)), flow)
+                np.save(os.path.join(local_out_path_motion,
+                                     '{0:06}.npy'.format(cnt)), flow)
             cur_frame = frame
 
         tEnd = time.time()
         print("It takes {0} sec for {1} frames".format(tEnd - tStart, cnt))
+
 
 if __name__ == '__main__':
     main()

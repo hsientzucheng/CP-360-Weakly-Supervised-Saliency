@@ -1,17 +1,13 @@
-from __future__ import division
-from __future__ import print_function
-
-import os, sys
-sys.path.append('..')
-import time
-import torch
-import matplotlib.pyplot as plt
 import numpy as np
-#import ruamel.yaml as yaml
-
-from utils.utils import overlay
-from torch.autograd import Variable
+import matplotlib.pyplot as plt
+import torch
+import time
+import os
+import sys
+sys.path.append('..')
 from PIL import Image
+from torch.autograd import Variable
+from utils.utils import overlay
 
 
 def CAM(input_cubemap, input_equi, model, feature_layer_name,
@@ -37,8 +33,9 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name,
 
     model.eval()
 
-    # hook the feature extractor
+    # Hook the feature extractor
     feature_maps = []
+
     def hook(module, input, output):
         if use_gpu:
             feature_maps.append(output.cpu().data.numpy())
@@ -54,7 +51,7 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name,
     if np.min(weight_softmax) < 0:
         weight_softmax -= np.min(weight_softmax)
 
-    # from BZ x H x W x C to BZ x C x H x W
+    # From BZ x H x W x C to BZ x C x H x W
     img = img.permute(0, 3, 1, 2).contiguous()
 
     if use_gpu:
@@ -62,26 +59,27 @@ def CAM(input_cubemap, input_equi, model, feature_layer_name,
     else:
         img = Variable(img)
 
-    # forward
+    # Forward
     tStart = time.time()
     output = model(img)
     tEnd = time.time()
 
     cubic_feature = feature_maps[0]
 
-    # compute CAM
+    # Compute CAM
     bz, nc, h, w = cubic_feature.shape
-    #out_feature = np.transpose(cubic_feature, (0, 3, 1, 2))
+    # out_feature = np.transpose(cubic_feature, (0, 3, 1, 2))
     features = cubic_feature.reshape(bz, nc, h*w)
 
     cams = []
 
     cube_score = np.array([])
     for idx in range(features.shape[0]):
-        if cube_score.shape[0] ==0:
-            cube_score = np.expand_dims(weight_softmax.dot(features[idx]),0)
+        if cube_score.shape[0] == 0:
+            cube_score = np.expand_dims(weight_softmax.dot(features[idx]), 0)
         else:
-            cube_score = np.concatenate((cube_score, np.expand_dims(weight_softmax.dot(features[idx]),0)),axis=0)
-    cube_score = cube_score.reshape(cube_score.shape[0],num_class,h,w)
+            cube_score = np.concatenate((cube_score, np.expand_dims(
+                weight_softmax.dot(features[idx]), 0)), axis=0)
+    cube_score = cube_score.reshape(cube_score.shape[0], num_class, h, w)
     handle.remove()
     return cube_score, cubic_feature, weight_softmax

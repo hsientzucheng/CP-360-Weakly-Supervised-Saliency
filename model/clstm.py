@@ -1,4 +1,7 @@
-import os, sys
+from torch.autograd import Variable
+from model.cube_pad import CubePad
+import os
+import sys
 import torch
 import math
 import matplotlib.pyplot as plt
@@ -6,26 +9,29 @@ import torch.nn.functional as f
 from torch.nn.parameter import Parameter
 from torch import nn
 sys.path.append('..')
-from model.cube_pad import CubePad
-from torch.autograd import Variable
 
 # Define some constants
 KERNEL_SIZE = 3
 PADDING = 0
 # PADDING = KERNEL_SIZE // 2
 
+
 class ConvLSTMCell(nn.Module):
     """
     Generate a convolutional LSTM cell
     """
+
     def __init__(self, input_size, hidden_size, cp=True):
         super(ConvLSTMCell, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.Conv1 = nn.Conv2d(input_size + hidden_size, 4 * hidden_size, KERNEL_SIZE, padding=PADDING)
-        self.Conv2 = nn.Conv2d(4 * hidden_size, 4 * hidden_size, KERNEL_SIZE, padding=PADDING)
+        self.Conv1 = nn.Conv2d(input_size + hidden_size,
+                               4 * hidden_size, KERNEL_SIZE, padding=PADDING)
+        self.Conv2 = nn.Conv2d(4 * hidden_size, 4 *
+                               hidden_size, KERNEL_SIZE, padding=PADDING)
         self.Relu = nn.ReLU(inplace=True)
-        self.Gates = nn.Conv2d(4 * hidden_size, 4 * hidden_size, KERNEL_SIZE, padding=PADDING)
+        self.Gates = nn.Conv2d(4 * hidden_size, 4 *
+                               hidden_size, KERNEL_SIZE, padding=PADDING)
         self.LSoftMax = nn.LogSoftmax(dim=1)
         self._initialize_weights()
         if cp:
@@ -93,4 +99,3 @@ class ConvLSTMCell(nn.Module):
             except:
                 print("skip loading key '{}' due to inconsistent size".format(name))
         self.load_state_dict(custom_state_dict)
-

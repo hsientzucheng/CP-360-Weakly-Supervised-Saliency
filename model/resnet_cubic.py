@@ -1,15 +1,15 @@
+from torch.nn.parameter import Parameter
+from torch.autograd import Variable
+from model.cube_pad import CubePad
 import torch.nn as nn
 import math
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import torch.utils.model_zoo as model_zoo
-import os, sys
+import os
+import sys
 sys.path.append('..')
-
-from model.cube_pad import CubePad
-from torch.autograd import Variable
-from torch.nn.parameter import Parameter
 
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
@@ -23,10 +23,12 @@ model_urls = {
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
 
+
 def conv3x3(in_planes, out_planes, stride=1):
     "3x3 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
+
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -150,7 +152,8 @@ class ResNet(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, cp=self.cp))
+        layers.append(block(self.inplanes, planes,
+                            stride, downsample, cp=self.cp))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes, cp=self.cp))
@@ -184,7 +187,8 @@ class ResNet(nn.Module):
         for name, param in pretrained_state_dict.items():
 
             if name not in custom_state_dict:
-                raise KeyError("unexpected key '{}' in state_dict".format(name))
+                raise KeyError(
+                    "unexpected key '{}' in state_dict".format(name))
 
             if isinstance(param, Parameter):
                 param = param.data
@@ -241,7 +245,8 @@ def resnet101(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], **kwargs)
     if pretrained:
-        model.load_pretrained_model(model_zoo.load_url(model_urls['resnet101']))
+        model.load_pretrained_model(
+            model_zoo.load_url(model_urls['resnet101']))
     return model
 
 
@@ -253,5 +258,6 @@ def resnet152(pretrained=False, **kwargs):
     """
     model = ResNet(Bottleneck, [3, 8, 36, 3], **kwargs)
     if pretrained:
-        model.load_pretrained_model(model_zoo.load_url(model_urls['resnet152']))
+        model.load_pretrained_model(
+            model_zoo.load_url(model_urls['resnet152']))
     return model

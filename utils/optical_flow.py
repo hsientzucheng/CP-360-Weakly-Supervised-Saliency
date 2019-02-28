@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def calcOpticalFlow(prev_frame, cur_frame, res=(960, 480)):
     """
         Extract optical flow from two consecutive frames
@@ -14,12 +15,14 @@ def calcOpticalFlow(prev_frame, cur_frame, res=(960, 480)):
             absflow: Flow intensity image
             flow: Optical flow
     """
-    prev_frame = cv2.resize(prev_frame[..., ::-1], res, interpolation=cv2.INTER_LANCZOS4)
-    cur_frame = cv2.resize(cur_frame[..., ::-1], res, interpolation=cv2.INTER_LANCZOS4)
+    prev_frame = cv2.resize(
+        prev_frame[..., ::-1], res, interpolation=cv2.INTER_LANCZOS4)
+    cur_frame = cv2.resize(
+        cur_frame[..., ::-1], res, interpolation=cv2.INTER_LANCZOS4)
     prev_frame = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
     cur_frame = cv2.cvtColor(cur_frame, cv2.COLOR_BGR2GRAY)
     df = cv2.optflow.createOptFlow_DeepFlow()
-    h,w = prev_frame.shape
+    h, w = prev_frame.shape
     flow_temp = np.zeros((h, w, 2))
 
     # Deep Flow
