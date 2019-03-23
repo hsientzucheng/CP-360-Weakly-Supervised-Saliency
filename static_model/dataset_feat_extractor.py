@@ -11,6 +11,7 @@ import tqdm
 import collections
 import ruamel_yaml as yaml
 
+from utils.utils import overlay
 from class_activation_model import CAM
 from utils.optical_flow import calcOpticalFlow
 from PIL import Image
