@@ -1,7 +1,5 @@
 from utils.cube_to_equi import Cube2Equi
 from PIL import Image
-from __future__ import print_function
-from __future__ import division
 
 import os
 import sys
@@ -13,7 +11,7 @@ import cv2
 sys.path.append('..')
 
 
-def AUC_Borji(saliency_map, fixation_map, Nsplits=100, stepSize=0.1, to_plot=False):
+def AUC_Borji(saliency_map, fixation_map, Nsplits=100, stepSize=0.01, to_plot=False):
     # saliency_map is the saliency map
     # fixation_map is the human fixation map (binary matrix)
     # jitter = True will add tiny non-zero random constant to all map
