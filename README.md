@@ -21,6 +21,7 @@ You can download our convolution LSTM model [here](https://drive.google.com/file
 The model should be put into the directory:
 ```
 [CP-360-Weakly-Supervised-Saliency PATH]/checkpoint/CLSTM_model_released.pth
+Performance: AUC 0.898; CC 0.494; AUCB 0.874
 ```
 ### CubePadding
 
